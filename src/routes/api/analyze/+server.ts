@@ -1,7 +1,6 @@
-import { json, error } from '@sveltejs/kit';
+import { error } from '@sveltejs/kit';
 import { z } from 'zod';
 import { env } from '$env/dynamic/private';
-import { dev } from '$app/environment';
 import type { RequestHandler } from './$types';
 import { db, requests, results } from '$lib/server/db/index.js';
 import { GitHubService } from '$lib/server/services/github.js';
@@ -9,7 +8,7 @@ import { AIAnalyzer } from '$lib/server/services/ai-analyzer.js';
 import { CacheService, CACHE_NAMESPACES, CACHE_TTL } from '$lib/server/services/cache.js';
 import { analysisRateLimiter } from '$lib/server/services/rate-limiter.js';
 import { getRepoForSdk } from '$lib/utils/sdk-mappings.js';
-import type { PullRequest, GitHubTag, GitHubCommit, GitHubPullRequest } from '$lib/types.js';
+import type { PullRequest, GitHubPullRequest } from '$lib/types.js';
 
 // Request schema validation
 const AnalyzeRequestSchema = z.object({

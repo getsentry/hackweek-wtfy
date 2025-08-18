@@ -1,6 +1,6 @@
 // Simplified GitHub API service with better pagination
 import { Octokit } from '@octokit/rest';
-import { captureException } from '@sentry/sveltekit';
+import * as Sentry from '@sentry/sveltekit';
 import type { GitHubCommit, GitHubPullRequest, GitHubTag } from '$lib/types';
 
 export class GitHubService {
@@ -85,14 +85,14 @@ export class GitHubService {
 			// Get the date of the fromVersion
 			const fromDate = await this.getVersionDate(owner, repoName, fromVersion);
 
-			// Get ALL commits since that date using pagination
-			return this.getAllCommitsSince(owner, repoName, fromDate, toVersion, commitSearchKeywords);
+			// Search for commits with keywords since that date
+			return this.searchCommitsWithKeywords(repo, commitSearchKeywords, fromDate);
 		} catch (error) {
 			console.error(
 				`Failed to get commits between ${fromVersion} and ${toVersion} for ${repo}:`,
 				error
 			);
-			captureException(error);
+			Sentry.captureException(error);
 			return [];
 		}
 	}
@@ -139,82 +139,98 @@ export class GitHubService {
 	}
 
 	/**
-	 * Get ALL commits since a specific date using proper pagination
+	 * Search for commits containing specific keywords since a date
 	 */
-	private async getAllCommitsSince(
-		owner: string,
-		repoName: string,
-		sinceDate: string,
-		untilVersion: string,
-		commitSearchKeywords: string[]
+	private async searchCommitsWithKeywords(
+		repo: string,
+		keywords: string[],
+		sinceDate: string
 	): Promise<GitHubCommit[]> {
-		const allCommits: GitHubCommit[] = [];
-		let page = 1;
-		const perPage = 100;
+		const allMatchingCommits: GitHubCommit[] = [];
 
-		// If untilVersion is specified, get its SHA to know when to stop
-		let untilSha: string | undefined;
-		if (untilVersion) {
+		// Search for each keyword separately to get comprehensive results
+		for (const keyword of keywords) {
 			try {
-				const tagResponse = await this.octokit.git.getRef({
-					owner,
-					repo: repoName,
-					ref: `tags/${untilVersion}`
-				});
-				untilSha = tagResponse.data.object.sha;
+				const keywordCommits = await this.searchCommits(repo, keyword, sinceDate.split('T')[0]);
+				allMatchingCommits.push(...keywordCommits);
 			} catch (error) {
-				console.log(`Could not resolve untilVersion ${untilVersion}, will fetch to HEAD`);
+				console.error(`Failed to search for keyword "${keyword}":`, error);
+				// Continue with other keywords even if one fails
 			}
 		}
 
-		console.log(
-			`Fetching ALL commits since ${sinceDate}${untilSha ? ` until ${untilVersion}` : ' to HEAD'}`
+		// Remove duplicates based on SHA
+		const uniqueCommits = allMatchingCommits.filter(
+			(commit, index, self) => index === self.findIndex((c) => c.sha === commit.sha)
 		);
 
-		while (true) {
-			const { data } = await this.octokit.repos.listCommits({
-				owner,
-				repo: repoName,
-				since: sinceDate,
-				sha: untilSha,
-				per_page: perPage,
-				query: commitSearchKeywords.map((k) => `"${k}"`).join(' OR '),
-				page
-			});
+		console.log(
+			`Found ${uniqueCommits.length} unique commits matching keywords: ${keywords.join(', ')}`
+		);
+		return uniqueCommits;
+	}
 
-			if (data.length === 0) {
-				break;
-			}
+	/**
+	 * Search repository for commits containing a specific keyword since a date
+	 */
+	async searchCommits(repo: string, keyword: string, sinceDate: string): Promise<GitHubCommit[]> {
+		const searchQuery = `repo:${repo} committer-date:>${sinceDate} ${keyword}`;
+		console.log(`Searching commits with query: ${searchQuery}`);
 
-			allCommits.push(
-				...data.map((commit) => ({
-					sha: commit.sha,
-					commit: {
-						message: commit.commit.message,
-						author: {
-							date: commit.commit.author?.date || ''
-						}
-					},
-					html_url: commit.html_url
-				}))
+		// GitHub's Search API often works better unauthenticated for public repos
+		try {
+			return await Sentry.startSpan(
+				{
+					op: 'github.search.commits',
+					name: `Search commits with query`,
+					attributes: {
+						searchQuery,
+						keyword,
+						sinceDate,
+						repo
+					}
+				},
+				async (span) => {
+					const unauthenticatedOctokit = new Octokit();
+					const { data } = await unauthenticatedOctokit.search.commits({
+						q: searchQuery,
+						sort: 'committer-date',
+						order: 'desc',
+						per_page: 100
+					});
+
+					const commits = data.items.map((item) => ({
+						sha: item.sha,
+						commit: {
+							message: item.commit.message,
+							author: {
+								date: item.commit.author.date
+							}
+						},
+						html_url: item.html_url
+					}));
+
+					const numCommits = commits.length;
+					span.setAttribute('numCommits', numCommits);
+					console.log(`✅ Unauthenticated search: Found ${numCommits} commits for "${keyword}"`);
+					return commits;
+				}
+			);
+		} catch (unauthError) {
+			console.error(`❌ Both authenticated and unauthenticated search failed for "${keyword}"`);
+			console.error(
+				'Auth error:',
+				unauthError instanceof Error ? unauthError.message : unauthError
+			);
+			console.error(
+				'Unauth error:',
+				unauthError instanceof Error ? unauthError.message : unauthError
 			);
 
-			// If we got less than perPage, we've reached the end
-			if (data.length < perPage) {
-				break;
-			}
-
-			page++;
-
-			// Very generous safety limit - 1000 pages = 100,000 commits
-			if (page > 1000) {
-				console.warn(`Reached safety limit (100,000 commits) for ${owner}/${repoName}`);
-				break;
-			}
+			Sentry.captureException(unauthError);
+			// Don't throw - return empty array so other keywords can still be searched
+			return [];
 		}
-
-		console.log(`Fetched ${allCommits.length} commits since ${sinceDate}`);
-		return allCommits;
 	}
 
 	/**

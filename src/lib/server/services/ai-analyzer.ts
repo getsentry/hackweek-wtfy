@@ -13,6 +13,9 @@ export class AIAnalyzer {
 		this.openai = originalOpenAi;
 	}
 
+	/**
+	 * Extract relevant keywords from issue description for commit searching
+	 */
 	async findKeywords(issueDescription: string): Promise<string[]> {
 		try {
 			const response = await this.openai.chat.completions.create({
@@ -151,7 +154,7 @@ ${issueDescription}`
 
 		try {
 			const response = await this.openai.chat.completions.create({
-				model: 'gpt-4',
+				model: 'gpt-4.1',
 				messages: [
 					{
 						role: 'system',
