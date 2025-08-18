@@ -53,7 +53,7 @@ WTFY is an internal Sentry tool that answers the eternal developer question: "Wa
 
 ## Implementation Phases
 
-### Phase 1: Project Setup & Foundation 🏗️
+### [Done] Phase 1: Project Setup & Foundation 🏗️
 
 **Goal**: Get the basic SvelteKit app running with proper tooling
 
