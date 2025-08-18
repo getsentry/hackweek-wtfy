@@ -1,0 +1,55 @@
+import { pgTable, serial, text, timestamp, integer, jsonb } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+
+// Requests table - stores user queries
+export const requests = pgTable('requests', {
+	id: serial('id').primaryKey(),
+	sdk: text('sdk').notNull(), // e.g., 'sentry-javascript', 'sentry-python'
+	version: text('version').notNull(), // e.g., '7.0.0'
+	description: text('description').notNull(), // User's issue description
+	createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+// Results table - stores analysis results
+export const results = pgTable('results', {
+	id: serial('id').primaryKey(),
+	requestId: integer('request_id')
+		.references(() => requests.id)
+		.notNull(),
+	status: text('status', { enum: ['fixed', 'not_fixed', 'unknown'] }).notNull(),
+	confidence: integer('confidence').notNull(), // 0-100 confidence score
+	summary: text('summary'), // Brief summary of the fix
+	prs: jsonb('prs'), // Array of PR objects with details
+	createdAt: timestamp('created_at').defaultNow().notNull()
+});
+
+// Cache table - stores GitHub API responses and parsed data
+export const cache = pgTable('cache', {
+	id: serial('id').primaryKey(),
+	key: text('key').notNull().unique(), // Cache key (hash of request params)
+	data: jsonb('data').notNull(), // Cached response data
+	expiresAt: timestamp('expires_at').notNull()
+});
+
+// Relations
+export const requestsRelations = relations(requests, ({ one }) => ({
+	result: one(results, {
+		fields: [requests.id],
+		references: [results.requestId]
+	})
+}));
+
+export const resultsRelations = relations(results, ({ one }) => ({
+	request: one(requests, {
+		fields: [results.requestId],
+		references: [requests.id]
+	})
+}));
+
+// Types
+export type Request = typeof requests.$inferSelect;
+export type NewRequest = typeof requests.$inferInsert;
+export type Result = typeof results.$inferSelect;
+export type NewResult = typeof results.$inferInsert;
+export type Cache = typeof cache.$inferSelect;
+export type NewCache = typeof cache.$inferInsert;
