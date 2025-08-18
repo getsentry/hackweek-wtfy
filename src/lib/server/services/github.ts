@@ -1,6 +1,7 @@
 // GitHub API service for fetching repository data
 import { Octokit } from '@octokit/rest';
 import type { GitHubCommit, GitHubPullRequest, GitHubTag } from '$lib/types';
+import { captureException } from '@sentry/sveltekit';
 
 export class GitHubService {
 	private octokit: Octokit;
@@ -60,6 +61,7 @@ export class GitHubService {
 			return allTags;
 		} catch (error) {
 			console.error(`Failed to get tags for ${repo}:`, error);
+			captureException(error);
 			throw new Error(
 				`Failed to fetch repository tags: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);
@@ -75,7 +77,7 @@ export class GitHubService {
 		toVersion?: string
 	): Promise<GitHubCommit[]> {
 		try {
-			console.log(`Getting commits between versions ${fromVersion} and ${toVersion}`);
+			console.log(`Looking up commits between versions ${fromVersion} and ${toVersion}`);
 			const [owner, repoName] = repo.split('/');
 
 			// If no toVersion specified, use the default branch (usually main/master)
@@ -104,6 +106,7 @@ export class GitHubService {
 				`Failed to get commits between ${fromVersion} and ${toVersion} for ${repo}:`,
 				error
 			);
+			captureException(error);
 			// Return empty array if comparison fails (e.g., invalid version tags)
 			return [];
 		}

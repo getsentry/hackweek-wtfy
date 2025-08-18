@@ -1,14 +1,16 @@
 // OpenAI analysis service for intelligent issue analysis
 import OpenAI from 'openai';
 import type { AnalysisStatus, GitHubCommit, PullRequest } from '$lib/types';
-
+import * as Sentry from '@sentry/sveltekit';
+import * as SentryNode from '@sentry/node';
 export class AIAnalyzer {
 	private openai: OpenAI;
 
 	constructor(apiKey: string) {
-		this.openai = new OpenAI({
+		const originalOpenAi = new OpenAI({
 			apiKey
 		});
+		this.openai = originalOpenAi;
 	}
 
 	/**
@@ -36,10 +38,10 @@ export class AIAnalyzer {
 			}
 
 			// Analyze commits first for quick wins
-			const commitAnalysis = await this.analyzeCommits(issueDescription, commits);
+			const commitAnalysis = await this.analyzeCommitsInternal(issueDescription, commits);
 
 			// Analyze PRs for more detailed context
-			const prAnalysis = await this.analyzePullRequests(issueDescription, prs);
+			const prAnalysis = await this.analyzePullRequestsInternal(issueDescription, prs);
 
 			// Combine analysis results
 			const combinedResult = this.combineAnalysis(commitAnalysis, prAnalysis, prs);
@@ -57,9 +59,9 @@ export class AIAnalyzer {
 	}
 
 	/**
-	 * Analyze commit messages for issue relevance
+	 * Analyze commit messages for issue relevance (internal implementation)
 	 */
-	private async analyzeCommits(
+	private async analyzeCommitsInternal(
 		issueDescription: string,
 		commits: GitHubCommit[]
 	): Promise<{
@@ -79,13 +81,16 @@ export class AIAnalyzer {
 
 		const prompt = this.buildCommitAnalysisPrompt(issueDescription, commits);
 
+		console.log('prompt', prompt);
+
 		try {
 			const response = await this.openai.chat.completions.create({
-				model: 'gpt-4',
+				model: 'gpt-4.1',
 				messages: [
 					{
 						role: 'system',
 						content: `You are an expert software engineer analyzing if commits fix reported issues. 
+						You DO NOT stop analyzing before you checked all passed commits!
 						Respond with a JSON object containing:
 						- status: "fixed", "not_fixed", or "unknown"
 						- confidence: number from 0-100
@@ -125,9 +130,9 @@ export class AIAnalyzer {
 	}
 
 	/**
-	 * Analyze PR descriptions for issue relevance
+	 * Analyze PR descriptions for issue relevance (internal implementation)
 	 */
-	private async analyzePullRequests(
+	private async analyzePullRequestsInternal(
 		issueDescription: string,
 		prs: PullRequest[]
 	): Promise<{
@@ -194,11 +199,51 @@ export class AIAnalyzer {
 	}
 
 	/**
-	 * Combine commit and PR analysis results
+	 * Analyze commit messages for issue relevance (public method for two-pass analysis)
 	 */
-	private combineAnalysis(
-		commitAnalysis: any,
-		prAnalysis: any,
+	async analyzeCommits(
+		issueDescription: string,
+		commits: GitHubCommit[]
+	): Promise<{
+		status: AnalysisStatus;
+		confidence: number;
+		reasoning: string;
+		relevantCommitShas: string[];
+	}> {
+		return this.analyzeCommitsInternal(issueDescription, commits);
+	}
+
+	/**
+	 * Analyze PR descriptions for issue relevance (public method for two-pass analysis)
+	 */
+	async analyzePullRequests(
+		issueDescription: string,
+		prs: PullRequest[]
+	): Promise<{
+		status: AnalysisStatus;
+		confidence: number;
+		reasoning: string;
+		relevantPrNumbers: number[];
+	}> {
+		return this.analyzePullRequestsInternal(issueDescription, prs);
+	}
+
+	/**
+	 * Combine commit and PR analysis results (public method for two-pass analysis)
+	 */
+	combineAnalysis(
+		commitAnalysis: {
+			status: AnalysisStatus;
+			confidence: number;
+			reasoning: string;
+			relevantCommitShas: string[];
+		},
+		prAnalysis: {
+			status: AnalysisStatus;
+			confidence: number;
+			reasoning: string;
+			relevantPrNumbers: number[];
+		},
 		allPrs: PullRequest[]
 	): {
 		status: AnalysisStatus;
@@ -240,13 +285,11 @@ export class AIAnalyzer {
 	 * Build prompt for commit analysis
 	 */
 	private buildCommitAnalysisPrompt(issueDescription: string, commits: GitHubCommit[]): string {
+		// Include ALL commits - AI will handle the analysis properly
 		const commitSummary = commits
-			.slice(0, 20)
 			.map(
-				(
-					commit // Limit to avoid token limits
-				) =>
-					`SHA: ${commit.sha.substring(0, 8)}\nMessage: ${commit.commit.message}\nDate: ${commit.commit.author.date}`
+				(commit) =>
+					`SHA: ${commit.sha.substring(0, 8)}\nMessage: ${commit.commit.message.split('\n')[0]}\nDate: ${commit.commit.author.date}`
 			)
 			.join('\n\n');
 
@@ -269,13 +312,11 @@ Consider the commit messages, timing, and context.`;
 	 * Build prompt for PR analysis
 	 */
 	private buildPRAnalysisPrompt(issueDescription: string, prs: PullRequest[]): string {
+		// Include ALL relevant PRs (already filtered by first AI pass)
 		const prSummary = prs
-			.slice(0, 10)
 			.map(
-				(
-					pr // Limit to avoid token limits
-				) =>
-					`PR #${pr.number}: ${pr.title}\nDescription: ${(pr.description || '').substring(0, 300)}${(pr.description || '').length > 300 ? '...' : ''}`
+				(pr) =>
+					`PR #${pr.number}: ${pr.title}\nDescription: ${(pr.description || '').substring(0, 500)}${(pr.description || '').length > 500 ? '...' : ''}`
 			)
 			.join('\n\n');
 

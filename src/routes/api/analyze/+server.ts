@@ -207,19 +207,16 @@ async function performAnalysis(
 			};
 		}
 
-		// Get commits between user's version and newer versions (limit to 1000 newer versions to avoid too much data)
-		const newerVersions = sortedVersions.slice(0, Math.min(userVersionIndex, 1000));
+		// Get ALL commits between user's version and the latest version
+		const commitsKey = { repo, from: version };
+		let allCommits = dev
+			? null
+			: await cache.get<GitHubCommit[]>(CACHE_NAMESPACES.GITHUB_COMMITS, commitsKey);
 
-		console.log({ newerVersions });
-
-		let allCommits: GitHubCommit[] = [];
-
-		const commitsKey = { repo, from: version, to: newerVersions[0].version };
-		const commits = await cache.get<GitHubCommit[]>(CACHE_NAMESPACES.GITHUB_COMMITS, commitsKey);
-		if (commits) {
-			allCommits = commits;
-		} else {
-			allCommits = await github.getCommitsBetweenVersions(repo, version, newerVersions[0].version);
+		if (!allCommits) {
+			// Get commits from user's version to the latest (most recent version or HEAD)
+			const latestVersion = sortedVersions.length > 0 ? sortedVersions[0].version : undefined;
+			allCommits = await github.getCommitsBetweenVersions(repo, version, latestVersion);
 			await cache.set(
 				CACHE_NAMESPACES.GITHUB_COMMITS,
 				commitsKey,
@@ -228,35 +225,36 @@ async function performAnalysis(
 			);
 		}
 
-		console.log({ allCommits });
+		console.log(`Found ${allCommits.length} commits to analyze:`);
+		console.log(allCommits);
 
-		// If no newer versions, check commits since the user's version
-		if (newerVersions.length === 0) {
-			const commitsKey = { repo, from: version };
-			let recentCommits = await cache.get<GitHubCommit[]>(
-				CACHE_NAMESPACES.GITHUB_COMMITS,
-				commitsKey
-			);
+		// PASS 1: AI analysis of ALL commit messages to find potentially relevant ones
+		const commitAnalysis = await ai.analyzeCommits(description, allCommits);
 
-			if (!recentCommits) {
-				recentCommits = await github.getCommitsBetweenVersions(repo, version);
-				await cache.set(
-					CACHE_NAMESPACES.GITHUB_COMMITS,
-					commitsKey,
-					recentCommits,
-					CACHE_TTL.GITHUB_COMMITS
-				);
-			}
-
-			allCommits = recentCommits || [];
+		if (commitAnalysis.status === 'not_fixed' && commitAnalysis.confidence > 70) {
+			// High confidence that it's not fixed, return early to save API calls
+			return {
+				status: commitAnalysis.status,
+				confidence: commitAnalysis.confidence,
+				summary: commitAnalysis.reasoning,
+				prs: []
+			};
 		}
 
-		// Step 3: Extract PR numbers from commits
-		const prNumbers = github.extractPRNumbers(allCommits);
+		console.log({ commitAnalysis });
 
-		console.log({ prNumbers });
+		// Step 3: Extract PR numbers only from relevant commits (identified by AI)
+		const relevantCommits = allCommits.filter((commit) =>
+			commitAnalysis.relevantCommitShas.includes(commit.sha)
+		);
 
-		// Step 4: Get PR details
+		console.log({ relevantCommits });
+
+		const prNumbers = github.extractPRNumbers(relevantCommits);
+
+		console.log(`Found ${prNumbers.length} PRs to analyze from relevant commits`);
+
+		// PASS 2: Fetch PR details for relevant PRs only (smart API usage)
 		const prs: PullRequest[] = [];
 		for (const prNumber of prNumbers) {
 			const prKey = { repo, prNumber };
@@ -280,8 +278,11 @@ async function performAnalysis(
 			}
 		}
 
-		// Step 5: Use AI to analyze relevance
-		const analysis = await ai.analyzeRelevance(description, allCommits, prs);
+		// PASS 3: AI analysis of fetched PRs
+		const prAnalysis = await ai.analyzePullRequests(description, prs);
+
+		// Step 4: Combine both analyses with weighting
+		const analysis = ai.combineAnalysis(commitAnalysis, prAnalysis, prs);
 
 		return {
 			status: analysis.status,

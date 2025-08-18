@@ -12,6 +12,7 @@ Sentry.init({
 			recordInputs: true,
 			recordOutputs: true
 		})
-	]
-	// debug: true
+	],
+	sendDefaultPii: true,
+	debug: true
 });
