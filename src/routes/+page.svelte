@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { Search, AlertCircle, CheckCircle, LoaderCircle } from 'lucide-svelte';
+	import { enhance } from '$app/forms';
+	import type { ActionData } from './$types';
+
+	let { form }: { form: ActionData } = $props();
 	
 	// Form state using Svelte 5 runes
 	let sdk = $state('');
 	let version = $state('');
 	let description = $state('');
 	let isLoading = $state(false);
-	let result = $state<{
-		status: 'fixed' | 'not_fixed' | 'unknown';
-		confidence: number;
-		summary?: string;
-		prs?: Array<{ title: string; url: string; number: number }>;
-	} | null>(null);
-	let error = $state<string | null>(null);
+
+	// Get result and error from form action
+	const result = $derived(form?.success ? form.result : null);
+	const error = $derived(form?.error || null);
 
 	// Common Sentry SDKs
 	const sdks = [
@@ -28,47 +29,12 @@
 		{ value: 'sentry-android', label: 'Android SDK' }
 	];
 
-	async function analyzeIssue() {
-		if (!sdk || !version || !description.trim()) {
-			error = 'Please fill in all fields';
-			return;
-		}
-
-		isLoading = true;
-		error = null;
-		result = null;
-
-		try {
-			const response = await fetch('/api/analyze', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					sdk,
-					version,
-					description: description.trim()
-				})
-			});
-
-			if (!response.ok) {
-				throw new Error(`Analysis failed: ${response.statusText}`);
-			}
-
-			result = await response.json();
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'An unexpected error occurred';
-		} finally {
-			isLoading = false;
-		}
-	}
-
 	function resetForm() {
 		sdk = '';
 		version = '';
 		description = '';
-		result = null;
-		error = null;
+		// Clear the form result by navigating to the same page
+		window.location.href = window.location.pathname;
 	}
 </script>
 
@@ -86,7 +52,13 @@
 
 	<!-- Main Form Card -->
 	<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
-		<form onsubmit={analyzeIssue} method="post" class="space-y-6">
+		<form method="post" use:enhance={() => {
+			isLoading = true;
+			return async ({ update }) => {
+				await update();
+				isLoading = false;
+			};
+		}} class="space-y-6">
 			<!-- SDK Selection -->
 			<div>
 				<label for="sdk" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -94,6 +66,7 @@
 				</label>
 				<select
 					id="sdk"
+					name="sdk"
 					bind:value={sdk}
 					required
 					class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
@@ -112,6 +85,7 @@
 				</label>
 				<input
 					id="version"
+					name="version"
 					type="text"
 					bind:value={version}
 					placeholder="e.g., 7.0.0 or 1.25.1"
@@ -130,6 +104,7 @@
 				</label>
 				<textarea
 					id="description"
+					name="description"
 					bind:value={description}
 					rows="4"
 					placeholder="Describe the bug, error, or unexpected behavior you're experiencing..."
@@ -145,7 +120,7 @@
 			<div class="flex gap-4">
 				<button
 					type="submit"
-					disabled={isLoading || !sdk || !version || !description.trim()}
+					disabled={isLoading}
 					class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{#if isLoading}
