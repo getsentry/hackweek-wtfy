@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "packages": {
+    "@sentry/sveltekit": {
+      "signature": "b8a05d9de9dc8c7852d6b6a4303956ac",
+      "file": true,
+      "replaced": "^10.5.0"
+    }
+  }
+}

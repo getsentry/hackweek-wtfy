@@ -47,5 +47,8 @@
 		"onlyBuiltDependencies": [
 			"esbuild"
 		]
+	},
+	"dependencies": {
+		"@sentry/sveltekit": "file:.yalc/@sentry/sveltekit"
 	}
 }
