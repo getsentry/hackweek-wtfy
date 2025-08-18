@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { z } from 'zod';
 import { env } from '$env/dynamic/private';
+import { dev } from '$app/environment';
 import type { RequestHandler } from './$types';
 import { db, requests, results } from '$lib/server/db/index.js';
 import { GitHubService } from '$lib/server/services/github.js';
@@ -9,7 +10,6 @@ import { CacheService, CACHE_NAMESPACES, CACHE_TTL } from '$lib/server/services/
 import { analysisRateLimiter } from '$lib/server/services/rate-limiter.js';
 import { getRepoForSdk } from '$lib/utils/sdk-mappings.js';
 import type { PullRequest, GitHubTag, GitHubCommit, GitHubPullRequest } from '$lib/types.js';
-import { dev } from '$app/environment';
 
 // Request schema validation
 const AnalyzeRequestSchema = z.object({
@@ -73,9 +73,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		console.log({ analysisKey });
 
-		const cachedResult = dev
-			? null
-			: await cache.get(CACHE_NAMESPACES.OPENAI_ANALYSIS, analysisKey);
+		const cachedResult = undefined;
 
 		console.log({ cachedResult });
 
@@ -181,7 +179,7 @@ async function performAnalysis(
 ) {
 	try {
 		// Step 1: Get all tags/versions for the repository
-		let tags = dev ? null : await cache.get<GitHubTag[]>(CACHE_NAMESPACES.GITHUB_TAGS, { repo });
+		let tags = null;
 		console.log({ tags });
 		if (!tags) {
 			tags = await github.getTags(repo);
@@ -209,14 +207,20 @@ async function performAnalysis(
 
 		// Get ALL commits between user's version and the latest version
 		const commitsKey = { repo, from: version };
-		let allCommits = dev
-			? null
-			: await cache.get<GitHubCommit[]>(CACHE_NAMESPACES.GITHUB_COMMITS, commitsKey);
+		let allCommits = undefined;
+
+		const commitSearchKeywords = await ai.findKeywords(description);
+		console.log({ commitSearchKeywords });
 
 		if (!allCommits) {
 			// Get commits from user's version to the latest (most recent version or HEAD)
 			const latestVersion = sortedVersions.length > 0 ? sortedVersions[0].version : undefined;
-			allCommits = await github.getCommitsBetweenVersions(repo, version, latestVersion);
+			allCommits = await github.getCommitsBetweenVersions(
+				repo,
+				version,
+				latestVersion || '',
+				commitSearchKeywords
+			);
 			await cache.set(
 				CACHE_NAMESPACES.GITHUB_COMMITS,
 				commitsKey,
@@ -226,7 +230,7 @@ async function performAnalysis(
 		}
 
 		console.log(`Found ${allCommits.length} commits to analyze:`);
-		console.log(allCommits);
+		// console.log(allCommits);
 
 		// PASS 1: AI analysis of ALL commit messages to find potentially relevant ones
 		const commitAnalysis = await ai.analyzeCommits(description, allCommits);

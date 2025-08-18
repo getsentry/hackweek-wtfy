@@ -105,7 +105,7 @@
 	</CollapsiblePanel>
 
 	<!-- Development Tools (only visible in dev mode) -->
-	{#if dev}
+	{#if true}
 		<div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center">
@@ -127,7 +127,7 @@
 
 	<!-- Main Form Card -->
 	<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
-		<form method="post" use:enhance={() => {
+		<form method="POST" use:enhance={() => {
 			isLoading = true;
 			return async ({ update }) => {
 				await update();

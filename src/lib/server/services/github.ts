@@ -1,11 +1,10 @@
-// GitHub API service for fetching repository data
+// Simplified GitHub API service with better pagination
 import { Octokit } from '@octokit/rest';
-import type { GitHubCommit, GitHubPullRequest, GitHubTag } from '$lib/types';
 import { captureException } from '@sentry/sveltekit';
+import type { GitHubCommit, GitHubPullRequest, GitHubTag } from '$lib/types';
 
 export class GitHubService {
 	private octokit: Octokit;
-	private rateLimitBuffer = 100; // Keep 100 requests as buffer
 
 	constructor(token: string) {
 		this.octokit = new Octokit({
@@ -69,47 +68,153 @@ export class GitHubService {
 	}
 
 	/**
-	 * Get commits between two versions/tags
+	 * Get ALL commits between two versions using simple date-based approach
 	 */
 	async getCommitsBetweenVersions(
 		repo: string,
 		fromVersion: string,
-		toVersion?: string
+		toVersion: string,
+		commitSearchKeywords: string[]
 	): Promise<GitHubCommit[]> {
 		try {
-			console.log(`Looking up commits between versions ${fromVersion} and ${toVersion}`);
+			console.log(
+				`Looking up ALL commits between versions ${fromVersion} and ${toVersion || 'HEAD'}`
+			);
 			const [owner, repoName] = repo.split('/');
 
-			// If no toVersion specified, use the default branch (usually main/master)
-			const compareBase = toVersion || (await this.getDefaultBranch(repo));
+			// Get the date of the fromVersion
+			const fromDate = await this.getVersionDate(owner, repoName, fromVersion);
 
-			// Get the comparison between versions
-			const { data } = await this.octokit.repos.compareCommits({
-				owner,
-				repo: repoName,
-				base: fromVersion,
-				head: compareBase
-			});
-
-			return data.commits.map((commit) => ({
-				sha: commit.sha,
-				commit: {
-					message: commit.commit.message,
-					author: {
-						date: commit.commit.author?.date || ''
-					}
-				},
-				html_url: commit.html_url
-			}));
+			// Get ALL commits since that date using pagination
+			return this.getAllCommitsSince(owner, repoName, fromDate, toVersion, commitSearchKeywords);
 		} catch (error) {
 			console.error(
 				`Failed to get commits between ${fromVersion} and ${toVersion} for ${repo}:`,
 				error
 			);
 			captureException(error);
-			// Return empty array if comparison fails (e.g., invalid version tags)
 			return [];
 		}
+	}
+
+	/**
+	 * Get the commit date for a version tag
+	 */
+	private async getVersionDate(owner: string, repoName: string, version: string): Promise<string> {
+		try {
+			// Try different tag formats that repos commonly use
+			const tagFormats = [version, `v${version}`, version.replace(/^v/, '')];
+
+			for (const tagFormat of tagFormats) {
+				try {
+					const tagResponse = await this.octokit.git.getRef({
+						owner,
+						repo: repoName,
+						ref: `tags/${tagFormat}`
+					});
+
+					// Get the commit details to extract the date
+					const commitResponse = await this.octokit.git.getCommit({
+						owner,
+						repo: repoName,
+						commit_sha: tagResponse.data.object.sha
+					});
+
+					console.log(`Found version ${tagFormat} with date ${commitResponse.data.author.date}`);
+					return commitResponse.data.author.date;
+				} catch (error) {
+					// Try next format
+					continue;
+				}
+			}
+
+			throw new Error(`Version tag not found: ${version}`);
+		} catch (error) {
+			console.error(`Could not get date for version ${version}:`, error);
+			// Fallback to a reasonable date (1 year ago) if we can't find the version
+			const fallbackDate = new Date();
+			fallbackDate.setFullYear(fallbackDate.getFullYear() - 1);
+			return fallbackDate.toISOString();
+		}
+	}
+
+	/**
+	 * Get ALL commits since a specific date using proper pagination
+	 */
+	private async getAllCommitsSince(
+		owner: string,
+		repoName: string,
+		sinceDate: string,
+		untilVersion: string,
+		commitSearchKeywords: string[]
+	): Promise<GitHubCommit[]> {
+		const allCommits: GitHubCommit[] = [];
+		let page = 1;
+		const perPage = 100;
+
+		// If untilVersion is specified, get its SHA to know when to stop
+		let untilSha: string | undefined;
+		if (untilVersion) {
+			try {
+				const tagResponse = await this.octokit.git.getRef({
+					owner,
+					repo: repoName,
+					ref: `tags/${untilVersion}`
+				});
+				untilSha = tagResponse.data.object.sha;
+			} catch (error) {
+				console.log(`Could not resolve untilVersion ${untilVersion}, will fetch to HEAD`);
+			}
+		}
+
+		console.log(
+			`Fetching ALL commits since ${sinceDate}${untilSha ? ` until ${untilVersion}` : ' to HEAD'}`
+		);
+
+		while (true) {
+			const { data } = await this.octokit.repos.listCommits({
+				owner,
+				repo: repoName,
+				since: sinceDate,
+				sha: untilSha,
+				per_page: perPage,
+				query: commitSearchKeywords.map((k) => `"${k}"`).join(' OR '),
+				page
+			});
+
+			if (data.length === 0) {
+				break;
+			}
+
+			allCommits.push(
+				...data.map((commit) => ({
+					sha: commit.sha,
+					commit: {
+						message: commit.commit.message,
+						author: {
+							date: commit.commit.author?.date || ''
+						}
+					},
+					html_url: commit.html_url
+				}))
+			);
+
+			// If we got less than perPage, we've reached the end
+			if (data.length < perPage) {
+				break;
+			}
+
+			page++;
+
+			// Very generous safety limit - 1000 pages = 100,000 commits
+			if (page > 1000) {
+				console.warn(`Reached safety limit (100,000 commits) for ${owner}/${repoName}`);
+				break;
+			}
+		}
+
+		console.log(`Fetched ${allCommits.length} commits since ${sinceDate}`);
+		return allCommits;
 	}
 
 	/**
@@ -140,78 +245,6 @@ export class GitHubService {
 	}
 
 	/**
-	 * Get commits that reference specific PR numbers
-	 */
-	async getCommitsForPRs(repo: string, prNumbers: number[]): Promise<GitHubCommit[]> {
-		const commits: GitHubCommit[] = [];
-
-		for (const prNumber of prNumbers) {
-			try {
-				const [owner, repoName] = repo.split('/');
-				const { data } = await this.octokit.pulls.listCommits({
-					owner,
-					repo: repoName,
-					pull_number: prNumber
-				});
-
-				commits.push(
-					...data.map((commit) => ({
-						sha: commit.sha,
-						commit: {
-							message: commit.commit.message,
-							author: {
-								date: commit.commit.author?.date || ''
-							}
-						},
-						html_url: commit.html_url
-					}))
-				);
-			} catch (error) {
-				console.error(`Failed to get commits for PR #${prNumber}:`, error);
-				// Continue with other PRs even if one fails
-			}
-		}
-
-		return commits;
-	}
-
-	/**
-	 * Search repository for commits containing keywords
-	 */
-	async searchCommits(repo: string, query: string, since?: string): Promise<GitHubCommit[]> {
-		try {
-			// GitHub search API has different rate limits, so be careful
-			let searchQuery = `repo:${repo} ${query}`;
-
-			// Add date filter if since is provided (format: YYYY-MM-DD)
-			if (since) {
-				searchQuery += ` committer-date:>=${since}`;
-			}
-
-			const { data } = await this.octokit.search.commits({
-				q: searchQuery,
-				sort: 'committer-date',
-				order: 'desc',
-				per_page: 50 // Limit to avoid too many results
-			});
-
-			return data.items.map((item) => ({
-				sha: item.sha,
-				commit: {
-					message: item.commit.message,
-					author: {
-						date: item.commit.author.date
-					}
-				},
-				html_url: item.html_url
-			}));
-		} catch (error) {
-			console.error(`Failed to search commits in ${repo} for "${query}":`, error);
-			return [];
-		}
-	}
-
-	/**
 	 * Extract PR numbers from commit messages (e.g., "fix: something (#1234)")
 	 */
 	extractPRNumbers(commits: GitHubCommit[]): number[] {
@@ -231,35 +264,6 @@ export class GitHubService {
 		}
 
 		return Array.from(prNumbers);
-	}
-
-	/**
-	 * Get the default branch for a repository
-	 */
-	private async getDefaultBranch(repo: string): Promise<string> {
-		try {
-			const [owner, repoName] = repo.split('/');
-			const { data } = await this.octokit.repos.get({
-				owner,
-				repo: repoName
-			});
-			return data.default_branch;
-		} catch (error) {
-			console.error(`Failed to get default branch for ${repo}:`, error);
-			return 'main'; // Fallback to 'main'
-		}
-	}
-
-	/**
-	 * Check current rate limit status
-	 */
-	async checkRateLimit(): Promise<{ remaining: number; limit: number; resetTime: Date }> {
-		const { data } = await this.octokit.rateLimit.get();
-		return {
-			remaining: data.rate.remaining,
-			limit: data.rate.limit,
-			resetTime: new Date(data.rate.reset * 1000)
-		};
 	}
 
 	/**
@@ -291,5 +295,17 @@ export class GitHubService {
 				}
 				return 0;
 			});
+	}
+
+	/**
+	 * Check current rate limit status
+	 */
+	async checkRateLimit(): Promise<{ remaining: number; limit: number; resetTime: Date }> {
+		const { data } = await this.octokit.rateLimit.get();
+		return {
+			remaining: data.rate.remaining,
+			limit: data.rate.limit,
+			resetTime: new Date(data.rate.reset * 1000)
+		};
 	}
 }

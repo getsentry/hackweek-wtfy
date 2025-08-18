@@ -6,6 +6,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [
 		sentrySvelteKit({
+			autoUploadSourceMaps: false,
 			sourceMapsUploadOptions: {
 				org: 'sentry-sdks',
 				project: 'wtfy'

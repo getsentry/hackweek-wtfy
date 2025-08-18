@@ -2,8 +2,9 @@ import { fail } from '@sveltejs/kit';
 import type { Actions } from './$types';
 
 export const actions: Actions = {
-	default: async ({ request, url }) => {
+	default: async ({ request, fetch }) => {
 		try {
+			console.log('xx form action ');
 			const formData = await request.formData();
 			const data = {
 				sdk: formData.get('sdk') as string,
@@ -19,7 +20,7 @@ export const actions: Actions = {
 			}
 
 			// Call the internal API endpoint
-			const apiResponse = await fetch(`${url.origin}/api/analyze`, {
+			const apiResponse = await fetch(`/api/analyze`, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'

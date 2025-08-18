@@ -13,48 +13,45 @@ export class AIAnalyzer {
 		this.openai = originalOpenAi;
 	}
 
-	/**
-	 * Analyze if commits/PRs are related to the user's issue description
-	 */
-	async analyzeRelevance(
-		issueDescription: string,
-		commits: GitHubCommit[],
-		prs: PullRequest[]
-	): Promise<{
-		status: AnalysisStatus;
-		confidence: number;
-		summary: string;
-		relevantPrs: PullRequest[];
-	}> {
+	async findKeywords(issueDescription: string): Promise<string[]> {
 		try {
-			// If no commits or PRs to analyze, return unknown status
-			if (commits.length === 0 && prs.length === 0) {
-				return {
-					status: 'unknown',
-					confidence: 20,
-					summary: 'No commits or pull requests found for analysis.',
-					relevantPrs: []
-				};
-			}
+			const response = await this.openai.chat.completions.create({
+				model: 'gpt-4.1',
+				messages: [
+					{
+						role: 'system',
+						content: `You're a GitHub Search optimizer. 
+You'll be given user-created issue descriptions which can be fairly unspecific. 
+Your job is to extract 1-5 keywords that we can use to query for commits containing any of these keywords.
 
-			// Analyze commits first for quick wins
-			const commitAnalysis = await this.analyzeCommitsInternal(issueDescription, commits);
+Here are some keyword classes you should not return:
+- bug, fix, feat, or any other kind of meta information about the issue
+- runtime information like server or client
+- behaviour like 'working', 'throws error', etc.
 
-			// Analyze PRs for more detailed context
-			const prAnalysis = await this.analyzePullRequestsInternal(issueDescription, prs);
+Here are some keyword classes you should return:
+- the subject of the description, like 'web vitals', 'spans', 'performance', 'memory'
 
-			// Combine analysis results
-			const combinedResult = this.combineAnalysis(commitAnalysis, prAnalysis, prs);
+Always return the list of keywords in a JSON array!`
+					},
+					{
+						role: 'user',
+						content: `Here's an issue description. Return the list of keywords in a JSON array.
 
-			return combinedResult;
+${issueDescription}`
+					}
+				],
+				temperature: 0.8,
+				max_tokens: 10_000
+			});
+
+			const keywords = JSON.parse(response.choices[0]?.message?.content || '[]');
+
+			return keywords || [];
 		} catch (error) {
-			console.error('AI analysis failed:', error);
-			return {
-				status: 'unknown',
-				confidence: 10,
-				summary: 'AI analysis failed due to an error.',
-				relevantPrs: []
-			};
+			console.error('Keyword extraction failed:', error);
+			Sentry.captureException(error);
+			return [];
 		}
 	}
 
@@ -81,7 +78,7 @@ export class AIAnalyzer {
 
 		const prompt = this.buildCommitAnalysisPrompt(issueDescription, commits);
 
-		console.log('prompt', prompt);
+		// console.log('prompt', prompt);
 
 		try {
 			const response = await this.openai.chat.completions.create({
@@ -102,7 +99,7 @@ export class AIAnalyzer {
 						content: prompt
 					}
 				],
-				temperature: 0.3,
+				temperature: 0.8,
 				max_tokens: 1500
 			});
 
@@ -285,27 +282,31 @@ export class AIAnalyzer {
 	 * Build prompt for commit analysis
 	 */
 	private buildCommitAnalysisPrompt(issueDescription: string, commits: GitHubCommit[]): string {
+		console.log('adding commits to prompt', commits.length);
 		// Include ALL commits - AI will handle the analysis properly
 		const commitSummary = commits
 			.map(
 				(commit) =>
-					`SHA: ${commit.sha.substring(0, 8)}\nMessage: ${commit.commit.message.split('\n')[0]}\nDate: ${commit.commit.author.date}`
+					`SHA: ${commit.sha.substring(0, 8)}; Message: ${commit.commit.message.split('\n')[0]};`
 			)
 			.join('\n\n');
 
-		return `
+		return `THINK HARD AND CONSIDER ALL COMMITS IN THE LIST BELOW. DO NOT STOP BEFORE HAVING LOOKED AT ALL COMMITS!
+
+Analyze if any of these commits appear to fix the described issue. Look for:
+- Keywords that match the issue description
+- Bug fixes, error handling improvements, or behavior changes
+- dependency bumps ARE important and should be considered
+- Commits that address similar symptoms or root causes
+
+Consider the commit messages, context!
+
 Issue Description:
 "${issueDescription}"
 
 Recent Commits:
 ${commitSummary}
-
-Analyze if any of these commits appear to fix the described issue. Look for:
-- Keywords that match the issue description
-- Bug fixes, error handling improvements, or behavior changes
-- Commits that address similar symptoms or root causes
-
-Consider the commit messages, timing, and context.`;
+`;
 	}
 
 	/**

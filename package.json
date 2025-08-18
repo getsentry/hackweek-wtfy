@@ -5,6 +5,7 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"start": "ORIGIN=http://localhost:3000 node ./build/index.js",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
@@ -55,8 +56,9 @@
 	},
 	"dependencies": {
 		"@octokit/rest": "^22.0.0",
-		"@sentry/sveltekit": "file:.yalc/@sentry/sveltekit",
 		"@sentry/node": "10.5.0",
+		"@sentry/sveltekit": "file:.yalc/@sentry/sveltekit",
+		"@sveltejs/adapter-node": "^5.3.1",
 		"drizzle-orm": "^0.44.4",
 		"lucide-svelte": "^0.539.0",
 		"openai": "^5.12.2",
