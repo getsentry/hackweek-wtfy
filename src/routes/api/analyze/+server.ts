@@ -49,7 +49,7 @@ export const POST: RequestHandler = async ({ request }) => {
 			return error(
 				400,
 				'Invalid request data: ' +
-					err.issues.map((issue: any) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
+					err.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', ')
 			);
 		}
 

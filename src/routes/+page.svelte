@@ -15,6 +15,27 @@
 	const result = $derived(form?.success ? form.result : null);
 	const error = $derived(form?.error || null);
 
+	// Client-side validation
+	const isValidSdk = $derived(sdk.trim().length > 0);
+	const isValidVersion = $derived(version.trim().length > 0);
+	const isValidDescription = $derived(description.trim().length >= 10);
+	const isFormValid = $derived(isValidSdk && isValidVersion && isValidDescription);
+
+	// Validation error messages
+	const validationErrors = $derived({
+		sdk: !isValidSdk && sdk.length > 0 ? 'Please select an SDK' : null,
+		version: !isValidVersion && version.length > 0 ? 'Version is required' : null
+	});
+
+	// Description character count helper
+	const descriptionHelper = $derived(
+		description.length === 0
+			? null
+			: 10 - description.length > 0
+				? `${10 - description.length} more character${10 - description.length === 1 ? '' : 's'} needed`
+				: undefined
+	);
+
 	// Common Sentry SDKs
 	const sdks = [
 		{ value: 'sentry-javascript', label: 'JavaScript SDK' },
@@ -62,26 +83,29 @@
 			<!-- SDK Selection -->
 			<div>
 				<label for="sdk" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-					Select SDK
+					Select SDK <span class="text-orange-500">*</span>
 				</label>
 				<select
 					id="sdk"
 					name="sdk"
 					bind:value={sdk}
 					required
-					class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+					class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 {!isValidSdk && sdk.length > 0 ? 'border-orange-300 focus:border-orange-400 focus:ring-orange-200' : ''}"
 				>
 					<option value="">Choose an SDK...</option>
 					{#each sdks as sdkOption}
 						<option value={sdkOption.value}>{sdkOption.label}</option>
 					{/each}
 				</select>
+				{#if validationErrors.sdk}
+					<p class="mt-1 text-sm text-orange-600 dark:text-orange-400">{validationErrors.sdk}</p>
+				{/if}
 			</div>
 
 			<!-- Version Input -->
 			<div>
 				<label for="version" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-					Your Current Version
+					Your Current Version <span class="text-orange-500">*</span>
 				</label>
 				<input
 					id="version"
@@ -90,17 +114,21 @@
 					bind:value={version}
 					placeholder="e.g., 7.0.0 or 1.25.1"
 					required
-					class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+					class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 {!isValidVersion && version.length > 0 ? 'border-orange-300 focus:border-orange-400 focus:ring-orange-200' : ''}"
 				/>
-				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-					We'll check if your issue was fixed in any version after this one.
-				</p>
+				{#if validationErrors.version}
+					<p class="mt-1 text-sm text-orange-600 dark:text-orange-400">{validationErrors.version}</p>
+				{:else}
+					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+						We'll check if your issue was fixed in any version after this one.
+					</p>
+				{/if}
 			</div>
 
 			<!-- Issue Description -->
 			<div>
 				<label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-					Describe Your Issue
+					Describe Your Issue <span class="text-orange-500">*</span>
 				</label>
 				<textarea
 					id="description"
@@ -109,18 +137,22 @@
 					rows="4"
 					placeholder="Describe the bug, error, or unexpected behavior you're experiencing..."
 					required
-					class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+					class="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 {!isValidDescription && description.length > 0 ? 'border-orange-300 focus:border-orange-400 focus:ring-orange-200' : ''}"
 				></textarea>
-				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-					Be specific! Include error messages, expected vs actual behavior, or any relevant context.
-				</p>
+				{#if descriptionHelper}
+					<p class="mt-1 text-sm text-orange-600 dark:text-orange-400 opacity-60">{descriptionHelper}</p>
+				{:else}
+					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+						Be specific! Include error messages, expected vs actual behavior, or any relevant context.
+					</p>
+				{/if}
 			</div>
 
 			<!-- Submit Button -->
 			<div class="flex gap-4">
 				<button
 					type="submit"
-					disabled={isLoading}
+					disabled={isLoading || !isFormValid}
 					class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
 				>
 					{#if isLoading}
@@ -142,6 +174,12 @@
 					</button>
 				{/if}
 			</div>
+			
+			{#if !isFormValid && !isLoading}
+				<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
+					Please fill out all fields. The description must be at least 10 characters long.
+				</p>
+			{/if}
 		</form>
 	</div>
 
