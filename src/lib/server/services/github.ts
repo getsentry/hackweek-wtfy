@@ -16,23 +16,48 @@ export class GitHubService {
 	}
 
 	/**
-	 * Get all tags/releases for a repository sorted by creation date (newest first)
+	 * Get all tags/releases for a repository (up to 1000) sorted by creation date (newest first)
 	 */
 	async getTags(repo: string): Promise<GitHubTag[]> {
 		try {
 			const [owner, repoName] = repo.split('/');
-			const { data } = await this.octokit.repos.listTags({
-				owner,
-				repo: repoName,
-				per_page: 100 // Most recent 1000 tags should be sufficient
-			});
+			const allTags: GitHubTag[] = [];
+			let page = 1;
+			const perPage = 100; // GitHub API maximum per page
+			const maxTags = 1000; // Reasonable limit to avoid excessive API calls
 
-			return data.map((tag) => ({
-				name: tag.name,
-				commit: {
-					sha: tag.commit.sha
+			while (allTags.length < maxTags) {
+				const { data } = await this.octokit.repos.listTags({
+					owner,
+					repo: repoName,
+					per_page: perPage,
+					page
+				});
+
+				// No more tags available
+				if (data.length === 0) {
+					break;
 				}
-			}));
+
+				const mappedTags = data.map((tag) => ({
+					name: tag.name,
+					commit: {
+						sha: tag.commit.sha
+					}
+				}));
+
+				allTags.push(...mappedTags);
+
+				// If we got less than perPage, we've reached the end
+				if (data.length < perPage) {
+					break;
+				}
+
+				page++;
+			}
+
+			console.log(`Fetched ${allTags.length} tags for ${repo}`);
+			return allTags;
 		} catch (error) {
 			console.error(`Failed to get tags for ${repo}:`, error);
 			throw new Error(
@@ -50,6 +75,7 @@ export class GitHubService {
 		toVersion?: string
 	): Promise<GitHubCommit[]> {
 		try {
+			console.log(`Getting commits between versions ${fromVersion} and ${toVersion}`);
 			const [owner, repoName] = repo.split('/');
 
 			// If no toVersion specified, use the default branch (usually main/master)
@@ -152,7 +178,12 @@ export class GitHubService {
 	async searchCommits(repo: string, query: string, since?: string): Promise<GitHubCommit[]> {
 		try {
 			// GitHub search API has different rate limits, so be careful
-			const searchQuery = `repo:${repo} ${query}`;
+			let searchQuery = `repo:${repo} ${query}`;
+
+			// Add date filter if since is provided (format: YYYY-MM-DD)
+			if (since) {
+				searchQuery += ` committer-date:>=${since}`;
+			}
 
 			const { data } = await this.octokit.search.commits({
 				q: searchQuery,

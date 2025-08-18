@@ -191,6 +191,9 @@ async function performAnalysis(
 
 		// Step 2: Parse and sort versions to find newer versions
 		const sortedVersions = github.parseVersions(tags);
+
+		console.log({ sortedVersions });
+
 		const userVersionIndex = sortedVersions.findIndex(
 			(v) => v.version.includes(version) || version.includes(v.version.replace(/[^0-9.]/g, ''))
 		);
@@ -204,26 +207,28 @@ async function performAnalysis(
 			};
 		}
 
-		// Get commits between user's version and newer versions (limit to 3 newer versions to avoid too much data)
-		const newerVersions = sortedVersions.slice(0, Math.min(userVersionIndex, 3));
+		// Get commits between user's version and newer versions (limit to 1000 newer versions to avoid too much data)
+		const newerVersions = sortedVersions.slice(0, Math.min(userVersionIndex, 1000));
+
+		console.log({ newerVersions });
+
 		let allCommits: GitHubCommit[] = [];
 
-		for (const newerVersion of newerVersions) {
-			const commitsKey = { repo, from: version, to: newerVersion.version };
-			let commits = await cache.get<GitHubCommit[]>(CACHE_NAMESPACES.GITHUB_COMMITS, commitsKey);
-
-			if (!commits) {
-				commits = await github.getCommitsBetweenVersions(repo, version, newerVersion.version);
-				await cache.set(
-					CACHE_NAMESPACES.GITHUB_COMMITS,
-					commitsKey,
-					commits,
-					CACHE_TTL.GITHUB_COMMITS
-				);
-			}
-
-			allCommits.push(...commits);
+		const commitsKey = { repo, from: version, to: newerVersions[0].version };
+		const commits = await cache.get<GitHubCommit[]>(CACHE_NAMESPACES.GITHUB_COMMITS, commitsKey);
+		if (commits) {
+			allCommits = commits;
+		} else {
+			allCommits = await github.getCommitsBetweenVersions(repo, version, newerVersions[0].version);
+			await cache.set(
+				CACHE_NAMESPACES.GITHUB_COMMITS,
+				commitsKey,
+				allCommits,
+				CACHE_TTL.GITHUB_COMMITS
+			);
 		}
+
+		console.log({ allCommits });
 
 		// If no newer versions, check commits since the user's version
 		if (newerVersions.length === 0) {
@@ -249,10 +254,11 @@ async function performAnalysis(
 		// Step 3: Extract PR numbers from commits
 		const prNumbers = github.extractPRNumbers(allCommits);
 
+		console.log({ prNumbers });
+
 		// Step 4: Get PR details
 		const prs: PullRequest[] = [];
-		for (const prNumber of prNumbers.slice(0, 10)) {
-			// Limit to 10 PRs to avoid too many API calls
+		for (const prNumber of prNumbers) {
 			const prKey = { repo, prNumber };
 			let pr = await cache.get<GitHubPullRequest>(CACHE_NAMESPACES.GITHUB_PRS, prKey);
 

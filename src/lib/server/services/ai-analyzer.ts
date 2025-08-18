@@ -71,7 +71,7 @@ export class AIAnalyzer {
 		if (commits.length === 0) {
 			return {
 				status: 'not_fixed',
-				confidence: 60,
+				confidence: 100,
 				reasoning: 'No commits found after the specified version.',
 				relevantCommitShas: []
 			};
@@ -98,7 +98,7 @@ export class AIAnalyzer {
 					}
 				],
 				temperature: 0.3,
-				max_tokens: 800
+				max_tokens: 1500
 			});
 
 			const content = response.choices[0]?.message?.content;
@@ -207,8 +207,8 @@ export class AIAnalyzer {
 		relevantPrs: PullRequest[];
 	} {
 		// Weight PR analysis higher since PRs usually have more context
-		const commitWeight = 0.4;
-		const prWeight = 0.6;
+		const commitWeight = 0.3;
+		const prWeight = 0.7;
 
 		const combinedConfidence = Math.round(
 			commitAnalysis.confidence * commitWeight + prAnalysis.confidence * prWeight
