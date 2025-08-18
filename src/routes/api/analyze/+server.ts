@@ -9,6 +9,7 @@ import { CacheService, CACHE_NAMESPACES, CACHE_TTL } from '$lib/server/services/
 import { analysisRateLimiter } from '$lib/server/services/rate-limiter.js';
 import { getRepoForSdk } from '$lib/utils/sdk-mappings.js';
 import type { PullRequest, GitHubTag, GitHubCommit, GitHubPullRequest } from '$lib/types.js';
+import { dev } from '$app/environment';
 
 // Request schema validation
 const AnalyzeRequestSchema = z.object({
@@ -56,6 +57,9 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		// Get repository for SDK
 		const repo = getRepoForSdk(validatedData.sdk);
+
+		console.log({ repo });
+
 		if (!repo) {
 			return error(400, `Unsupported SDK: ${validatedData.sdk}`);
 		}
@@ -67,7 +71,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			description: validatedData.description
 		};
 
-		const cachedResult = await cache.get(CACHE_NAMESPACES.OPENAI_ANALYSIS, analysisKey);
+		console.log({ analysisKey });
+
+		const cachedResult = dev
+			? null
+			: await cache.get(CACHE_NAMESPACES.OPENAI_ANALYSIS, analysisKey);
+
+		console.log({ cachedResult });
+
 		if (cachedResult) {
 			return new Response(JSON.stringify(cachedResult), {
 				status: 200,
@@ -170,9 +181,11 @@ async function performAnalysis(
 ) {
 	try {
 		// Step 1: Get all tags/versions for the repository
-		let tags = await cache.get<GitHubTag[]>(CACHE_NAMESPACES.GITHUB_TAGS, { repo });
+		let tags = dev ? null : await cache.get<GitHubTag[]>(CACHE_NAMESPACES.GITHUB_TAGS, { repo });
+		console.log({ tags });
 		if (!tags) {
 			tags = await github.getTags(repo);
+			console.log('xx', tags.length, 'Tags', { tags });
 			await cache.set(CACHE_NAMESPACES.GITHUB_TAGS, { repo }, tags, CACHE_TTL.GITHUB_TAGS);
 		}
 

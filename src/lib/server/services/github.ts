@@ -24,7 +24,7 @@ export class GitHubService {
 			const { data } = await this.octokit.repos.listTags({
 				owner,
 				repo: repoName,
-				per_page: 100 // Most recent 100 tags should be sufficient
+				per_page: 100 // Most recent 1000 tags should be sufficient
 			});
 
 			return data.map((tag) => ({

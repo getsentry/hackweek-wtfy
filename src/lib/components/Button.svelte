@@ -36,7 +36,7 @@
 		lg: 'px-6 py-3 text-base'
 	};
 
-	const baseClasses = 'inline-flex items-center border font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors';
+	const baseClasses = 'inline-flex items-center border font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer';
 </script>
 
 <button

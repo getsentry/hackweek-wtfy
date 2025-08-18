@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { Search, LoaderCircle, TriangleAlert, CircleAlert } from 'lucide-svelte';
+	import { Search, LoaderCircle, TriangleAlert, CircleAlert, TestTube } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
+	import { dev } from '$app/environment';
 	import { Button, CollapsiblePanel, FormField, ResultsCard } from '$lib';
 	import type { ActionData } from './$types';
 
@@ -62,6 +63,12 @@
 		// Clear the form result by navigating to the same page
 		window.location.href = window.location.pathname;
 	}
+
+	function populateTestData() {
+		sdk = 'sentry-javascript';
+		version = '7.48.0';
+		description = 'My Web vital measurements are very inaccurate and differ a lot from the official web vitals library measurements as well as from the chrome dev tool vitals for the same pageload. Is there an SDK bug?';
+	}
 </script>
 
 <div class="max-w-4xl mx-auto">
@@ -96,6 +103,27 @@
 			</ul>
 		{/snippet}
 	</CollapsiblePanel>
+
+	<!-- Development Tools (only visible in dev mode) -->
+	{#if dev}
+		<div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+			<div class="flex items-center justify-between">
+				<div class="flex items-center">
+					<TestTube class="h-4 w-4 text-amber-600 dark:text-amber-400 mr-2" />
+					<span class="text-sm font-medium text-amber-800 dark:text-amber-200">Development Mode</span>
+				</div>
+				<Button
+					type="button"
+					variant="secondary"
+					size="sm"
+					onclick={populateTestData}
+					class="bg-amber-100 dark:bg-amber-900/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 hover:bg-amber-200 dark:hover:bg-amber-900/70"
+				>
+					Fill Test Data
+				</Button>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Main Form Card -->
 	<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
