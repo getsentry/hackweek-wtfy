@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
+	import { Github } from 'lucide-svelte';
 
 	let { children } = $props();
 </script>
@@ -24,9 +25,10 @@
 						Was It Fixed Yet?
 					</span>
 				</div>
-				<div class="text-xs text-gray-400 dark:text-gray-500">
-					Internal Sentry Tool
-				</div>
+				<a href="https://sentry.io" class="text-xs text-gray-400 dark:text-gray-500 flex flex-row items-center">
+					<img src="/sentry-logo.svg" alt="Sentry Logo" class="h-8 w-8" />
+					(Internal)
+				</a>
 			</div>
 		</div>
 	</header>
@@ -37,11 +39,21 @@
 	</main>
 
 	<!-- Footer -->
-	<footer class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mt-auto">
-		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-			<p class="text-center text-xs text-gray-500 dark:text-gray-400">
+	<footer class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mt-auto ">
+		<div class="w-full flex flex-row items-center justify-center gap-8 py-2">
+
+			<p class="text-center text-xs text-gray-500 dark:text-gray-400 ">
 				"Because the only thing worse than a bug is a bug that was already fixed but you didn't know about it."
 			</p>
-		</div>
+			<a
+			href="https://github.com/getsentry/hackweek-wtfy"
+			target="_blank"
+			rel="noopener noreferrer"
+			class="flex justify-center"
+			aria-label="View on GitHub"
+			>
+			<Github class="h-8 w-8 text-white border-[0.5px] rounded-full p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" />
+		</a>
+	</div>
 	</footer>
 </div>
