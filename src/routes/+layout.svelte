@@ -11,7 +11,7 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
 	<!-- Header -->
 	<header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
 		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -32,12 +32,12 @@
 	</header>
 
 	<!-- Main Content -->
-	<main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+	<main class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 flex-grow">
 		{@render children?.()}
 	</main>
 
 	<!-- Footer -->
-	<footer class="mt-12 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+	<footer class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mt-auto">
 		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
 			<p class="text-center text-xs text-gray-500 dark:text-gray-400">
 				"Because the only thing worse than a bug is a bug that was already fixed but you didn't know about it."

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Search, AlertCircle, CheckCircle, LoaderCircle } from 'lucide-svelte';
+	import { Search, AlertCircle, CheckCircle, LoaderCircle, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import type { ActionData } from './$types';
 
@@ -10,6 +10,10 @@
 	let version = $state('');
 	let description = $state('');
 	let isLoading = $state(false);
+	
+	// Collapsible panel state
+	let isWarningExpanded = $state(false);
+	let isProTipsExpanded = $state(false);
 
 	// Get result and error from form action
 	const result = $derived(form?.success ? form.result : null);
@@ -69,6 +73,41 @@
 			Tired of debugging issues that might have been fixed in newer SDK versions? 
 			Let our AI dig through changelogs and PRs so you don't have to.
 		</p>
+	</div>
+
+	<!-- Privacy Warning Panel -->
+	<div class="mb-6 border border-orange-200 dark:border-orange-800 rounded-lg bg-orange-50 dark:bg-orange-900/20">
+		<button
+			type="button"
+			onclick={() => isWarningExpanded = !isWarningExpanded}
+			class="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-orange-100 dark:hover:bg-orange-900/40 rounded-lg transition-colors"
+		>
+			<div class="flex items-center">
+				<AlertTriangle class="h-5 w-5 text-orange-600 dark:text-orange-400 mr-2" />
+				<span class="font-medium text-orange-800 dark:text-orange-200">Important: Privacy Guidelines</span>
+			</div>
+			{#if isWarningExpanded}
+				<ChevronDown class="h-4 w-4 text-orange-600 dark:text-orange-400" />
+			{:else}
+				<ChevronRight class="h-4 w-4 text-orange-600 dark:text-orange-400" />
+			{/if}
+		</button>
+		
+		{#if isWarningExpanded}
+			<div class="px-4 pb-4">
+				<div class="border-t border-orange-200 dark:border-orange-800 pt-3">
+					<p class="text-sm text-orange-800 dark:text-orange-200 font-medium mb-2">
+						⚠️ DO NOT include customer data in your description!
+					</p>
+					<ul class="text-sm text-orange-700 dark:text-orange-300 space-y-1">
+						<li>• No company names or customer identifiers</li>
+						<li>• No revenue data (ARR, MRR, etc.)</li>
+						<li>• No personal or sensitive information</li>
+						<li>• Use generic terms like "large enterprise customer" instead</li>
+					</ul>
+				</div>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Main Form Card -->
@@ -259,15 +298,33 @@
 	{/if}
 
 	<!-- Tips Section -->
-	<div class="mt-12 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-6">
-		<h3 class="text-lg font-medium text-indigo-900 dark:text-indigo-200 mb-3">
-			💡 Pro Tips for Better Results
-		</h3>
-		<ul class="space-y-2 text-sm text-indigo-800 dark:text-indigo-300">
-			<li>• Include specific error messages or stack traces when possible</li>
-			<li>• Mention the platform/environment (Node.js, browser, React Native, etc.)</li>
-			<li>• Describe what you expected vs what actually happened</li>
-			<li>• If it's a performance issue, include metrics or specifics</li>
-		</ul>
+	<div class="mt-12 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+		<button
+			type="button"
+			onclick={() => isProTipsExpanded = !isProTipsExpanded}
+			class="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-indigo-100 dark:hover:bg-indigo-900/40 rounded-lg transition-colors"
+		>
+			<h3 class="text-lg font-medium text-indigo-900 dark:text-indigo-200">
+				💡 Pro Tips for Better Results
+			</h3>
+			{#if isProTipsExpanded}
+				<ChevronDown class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+			{:else}
+				<ChevronRight class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+			{/if}
+		</button>
+		
+		{#if isProTipsExpanded}
+			<div class="px-6 pb-6">
+				<div class="border-t border-indigo-200 dark:border-indigo-800 pt-4">
+					<ul class="space-y-2 text-sm text-indigo-800 dark:text-indigo-300">
+						<li>• Include specific error messages or stack traces when possible</li>
+						<li>• Mention the platform/environment (Node.js, browser, React Native, etc.)</li>
+						<li>• Describe what you expected vs what actually happened</li>
+						<li>• If it's a performance issue, include metrics or specifics</li>
+					</ul>
+				</div>
+			</div>
+		{/if}
 	</div>
 </div>
