@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>WTFY - Was It Fixed Yet?</title>
+	<title>WTFY - Was This Fixed Yet?</title>
 	<meta name="description" content="Internal Sentry tool to check if SDK issues were fixed in newer versions" />
 	<link rel="icon" href={favicon} />
 </svelte:head>
@@ -22,7 +22,7 @@
 						WTFY
 					</h1>
 					<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
-						Was It Fixed Yet?
+						Was This Fixed Yet?
 					</span>
 				</div>
 				<a href="https://sentry.io" class="text-xs text-gray-400 dark:text-gray-500 flex flex-row items-center">

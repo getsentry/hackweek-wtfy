@@ -84,7 +84,7 @@
 								href={pr.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="group block p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-750 rounded-lg hover:from-indigo-50 hover:to-indigo-100 dark:hover:from-indigo-900/20 dark:hover:to-indigo-900/30 transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md animate-in fade-in-0 slide-in-from-left-2"
+								class="group block p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md animate-in fade-in-0 slide-in-from-left-2"
 								style="animation-delay: {index * 100}ms"
 							>
 								<div class="flex items-start justify-between">

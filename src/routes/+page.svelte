@@ -109,7 +109,7 @@
 		<div class="flex items-center justify-center mb-4">
 			<Zap class="h-10 w-10 text-indigo-600 dark:text-indigo-400 mr-3" />
 			<h1 class="text-4xl font-bold text-gray-900 dark:text-white">
-				Was It Fixed Yet?
+				Was This Fixed Yet?
 			</h1>
 		</div>
 		<p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
@@ -133,14 +133,13 @@
 	</div>
 
 	<!-- Privacy Warning Panel -->
-	<div class="w-full max-w-4xl">
-		<CollapsiblePanel
-			title="Important: Read This If You Want To Keep Your Job"
-			variant="warning"
-			icon={TriangleAlert}
-			bind:isExpanded={isWarningExpanded}
-			class="mb-6"
-		>
+	<CollapsiblePanel
+		title="Important: Read This If You Want To Keep Your Job"
+		variant="warning"
+		icon={TriangleAlert}
+		bind:isExpanded={isWarningExpanded}
+		class="mb-6"
+	>
 		{#snippet children()}
 			<p class="text-sm text-orange-800 dark:text-orange-200 font-medium mb-2">
 				DO NOT include customer data in your description!
@@ -152,12 +151,11 @@
 				<li>Use generic terms like "large enterprise customer" instead</li>
 			</ul>
 		{/snippet}
-		</CollapsiblePanel>
-	</div>
+	</CollapsiblePanel>
 
-	<!-- Development Tools (only visible in dev mode) -->
-	{#if dev}
-		<div class="w-full max-w-4xl mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+	<!-- Development Tools -->
+	{#if true}
+		<div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center">
 					<TestTube class="h-4 w-4 text-amber-600 dark:text-amber-400 mr-2" />
@@ -178,7 +176,7 @@
 
 	<!-- Main Form Card (hidden during analysis) -->
 	{#if !isLoading}
-		<div class="w-full max-w-4xl bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-200">
+		<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-200">
 			<div class="mb-6 border-l-4 border-indigo-500 pl-4">
 				<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
 					Analyze Your Issue
@@ -281,14 +279,14 @@
 
 	<!-- Analysis Progress (shown during loading) -->
 	{#if isLoading}
-		<div class="w-full max-w-4xl mb-8 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+		<div class="mb-8 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
 			<AnalysisProgress currentStep={analysisStep} steps={analysisSteps} />
 		</div>
 	{/if}
 
 	<!-- Error Display -->
 	{#if error}
-		<div class="w-full max-w-4xl mb-6">
+		<div class="mb-6">
 			<ErrorCard 
 				title="Analysis Failed" 
 				message={error} 
@@ -305,13 +303,13 @@
 
 	<!-- Results Display -->
 	{#if result}
-		<div class="w-full max-w-4xl mb-8">
+		<div class="mb-8">
 			<ResultsCard {result} />
 		</div>
 	{/if}
 
 	<!-- Tips Section -->
-	<div class="w-full max-w-4xl animate-in fade-in-0 slide-in-from-bottom-2 duration-700 delay-500">
+	<div class="animate-in fade-in-0 slide-in-from-bottom-2 duration-700 delay-500">
 		<CollapsiblePanel
 			title="💡 Pro Tips for Better Results"
 			variant="info"
