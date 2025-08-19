@@ -44,7 +44,7 @@ Always return the list of keywords in a JSON array!`
 ${issueDescription}`
 					}
 				],
-				temperature: 0.8,
+				temperature: 0.3,
 				max_tokens: 10_000
 			});
 
@@ -102,7 +102,7 @@ ${issueDescription}`
 						content: prompt
 					}
 				],
-				temperature: 0.8,
+				temperature: 0.7,
 				max_tokens: 1500
 			});
 
@@ -200,6 +200,9 @@ ${issueDescription}`
 
 	/**
 	 * Analyze commit messages for issue relevance (public method for two-pass analysis)
+	 * Shards the AI prompts to avoid context loss: I observed AI identifying way less commits
+	 * when passed a too long list at once. So we shard the queries to only pass in `COMMITS_PER_AI_PROMPT`
+	 * commits at a time.
 	 */
 	async analyzeCommits(
 		issueDescription: string,
@@ -210,11 +213,36 @@ ${issueDescription}`
 		reasoning: string;
 		relevantCommitShas: string[];
 	}> {
-		return this.analyzeCommitsInternal(issueDescription, commits);
+		const COMMITS_PER_AI_PROMPT = 100;
+		const numAnalysisJobs = commits.length / COMMITS_PER_AI_PROMPT;
+		const analysisJobs = [];
+
+		for (let i = 0; i < numAnalysisJobs; i++) {
+			const startIndex = i * COMMITS_PER_AI_PROMPT;
+			const endIndex = startIndex + COMMITS_PER_AI_PROMPT;
+			const commitsToAnalyze = commits.slice(startIndex, endIndex);
+			if (commitsToAnalyze.length) {
+				analysisJobs.push(this.analyzeCommitsInternal(issueDescription, commitsToAnalyze));
+			}
+		}
+
+		const analysisResults = await Promise.all(analysisJobs);
+
+		return analysisResults.reduce(
+			(acc, result, i) => {
+				acc.status = acc.status === 'fixed' ? acc.status : result.status;
+				acc.confidence = (acc.confidence + result.confidence) / (i + 1);
+				acc.reasoning = `${acc.reasoning}\n${result.reasoning}`;
+				acc.relevantCommitShas = acc.relevantCommitShas.concat(result.relevantCommitShas);
+				return acc;
+			},
+			{ status: 'unknown', confidence: 0, reasoning: '', relevantCommitShas: [] }
+		);
 	}
 
 	/**
 	 * Analyze PR descriptions for issue relevance (public method for two-pass analysis)
+	 * Shards the AI prompts to avoid context loss like in `analyzeCommits`
 	 */
 	async analyzePullRequests(
 		issueDescription: string,
@@ -225,7 +253,31 @@ ${issueDescription}`
 		reasoning: string;
 		relevantPrNumbers: number[];
 	}> {
-		return this.analyzePullRequestsInternal(issueDescription, prs);
+		const PRS_PER_AI_PROMPT = 5;
+		const numAnalysisJobs = prs.length / PRS_PER_AI_PROMPT;
+		const analysisJobs = [];
+
+		for (let i = 0; i < numAnalysisJobs; i++) {
+			const startIndex = i * PRS_PER_AI_PROMPT;
+			const endIndex = startIndex + PRS_PER_AI_PROMPT;
+			const prsToAnalyze = prs.slice(startIndex, endIndex);
+			if (prsToAnalyze.length) {
+				analysisJobs.push(this.analyzePullRequestsInternal(issueDescription, prsToAnalyze));
+			}
+		}
+
+		const analysisResults = await Promise.all(analysisJobs);
+
+		return analysisResults.reduce(
+			(acc, result, i) => {
+				acc.status = acc.status === 'fixed' ? acc.status : result.status;
+				acc.confidence = (acc.confidence + result.confidence) / (i + 1);
+				acc.reasoning = `${acc.reasoning}\n${result.reasoning}`;
+				acc.relevantPrNumbers = acc.relevantPrNumbers.concat(result.relevantPrNumbers);
+				return acc;
+			},
+			{ status: 'unknown', confidence: 0, reasoning: '', relevantPrNumbers: [] }
+		);
 	}
 
 	/**
@@ -288,13 +340,10 @@ ${issueDescription}`
 		console.log('adding commits to prompt', commits.length);
 		// Include ALL commits - AI will handle the analysis properly
 		const commitSummary = commits
-			.map(
-				(commit) =>
-					`SHA: ${commit.sha.substring(0, 8)}; Message: ${commit.commit.message.split('\n')[0]};`
-			)
+			.map((commit) => `SHA: ${commit.sha}; Message: ${commit.commit.message.split('\n')[0]};`)
 			.join('\n\n');
 
-		return `THINK HARD AND CONSIDER ALL COMMITS IN THE LIST BELOW. DO NOT STOP BEFORE HAVING LOOKED AT ALL COMMITS!
+		return `THINK HARD AND CONSIDER ALL ${commits.length} COMMITS IN THE LIST BELOW. DO NOT STOP BEFORE HAVING LOOKED AT ALL COMMITS!
 
 Analyze if any of these commits appear to fix the described issue. Look for:
 - Keywords that match the issue description
@@ -302,7 +351,7 @@ Analyze if any of these commits appear to fix the described issue. Look for:
 - dependency bumps ARE important and should be considered
 - Commits that address similar symptoms or root causes
 
-Consider the commit messages, context!
+Consider the ${commits.length} commit messages!
 
 Issue Description:
 "${issueDescription}"

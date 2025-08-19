@@ -234,8 +234,8 @@ async function performAnalysis(
 		// PASS 1: AI analysis of ALL commit messages to find potentially relevant ones
 		const commitAnalysis = await ai.analyzeCommits(description, allCommits);
 
-		if (commitAnalysis.status === 'not_fixed' && commitAnalysis.confidence > 70) {
-			// High confidence that it's not fixed, return early to save API calls
+		if (commitAnalysis.status === 'not_fixed' && !commitAnalysis.relevantCommitShas.length) {
+			// No commits found that potentially fix the issue, so we can bail out early
 			return {
 				status: commitAnalysis.status,
 				confidence: commitAnalysis.confidence,

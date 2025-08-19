@@ -60,7 +60,7 @@ export class GitHubService {
 			return allTags;
 		} catch (error) {
 			console.error(`Failed to get tags for ${repo}:`, error);
-			captureException(error);
+			Sentry.captureException(error);
 			throw new Error(
 				`Failed to fetch repository tags: ${error instanceof Error ? error.message : 'Unknown error'}`
 			);

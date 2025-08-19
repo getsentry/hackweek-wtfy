@@ -2,7 +2,7 @@
   "version": "v1",
   "packages": {
     "@sentry/sveltekit": {
-      "signature": "b8a05d9de9dc8c7852d6b6a4303956ac",
+      "signature": "c3b8fdd90211ceefea6015d3fdac4ee2",
       "file": true,
       "replaced": "^10.5.0"
     }
