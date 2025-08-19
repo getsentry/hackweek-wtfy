@@ -133,29 +133,31 @@
 	</div>
 
 	<!-- Privacy Warning Panel -->
-	<CollapsiblePanel
-		title="Important: Read This If You Want To Keep Your Job"
-		variant="warning"
-		icon={TriangleAlert}
-		bind:isExpanded={isWarningExpanded}
-		class="mb-6"
-	>
+	<div class="w-full max-w-4xl">
+		<CollapsiblePanel
+			title="Important: Read This If You Want To Keep Your Job"
+			variant="warning"
+			icon={TriangleAlert}
+			bind:isExpanded={isWarningExpanded}
+			class="mb-6"
+		>
 		{#snippet children()}
 			<p class="text-sm text-orange-800 dark:text-orange-200 font-medium mb-2">
-				⚠️ DO NOT include customer data in your description!
+				DO NOT include customer data in your description!
 			</p>
-			<ul class="text-sm text-orange-700 dark:text-orange-300 space-y-1">
-				<li>• No company names or customer identifiers</li>
-				<li>• No revenue data (ARR, MRR, etc.)</li>
-				<li>• No personal or sensitive information</li>
-				<li>• Use generic terms like "large enterprise customer" instead</li>
+			<ul class="text-sm text-orange-700 dark:text-orange-300 space-y-1 list-disc list-inside pl-2">
+				<li>No company names or customer identifiers</li>
+				<li>No revenue data (ARR, MRR, etc.)</li>
+				<li>No personal or sensitive information</li>
+				<li>Use generic terms like "large enterprise customer" instead</li>
 			</ul>
 		{/snippet}
-	</CollapsiblePanel>
+		</CollapsiblePanel>
+	</div>
 
 	<!-- Development Tools (only visible in dev mode) -->
 	{#if dev}
-		<div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+		<div class="w-full max-w-4xl mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center">
 					<TestTube class="h-4 w-4 text-amber-600 dark:text-amber-400 mr-2" />
@@ -174,28 +176,17 @@
 		</div>
 	{/if}
 
-	<!-- Main Form Card -->
-	<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-200 relative overflow-hidden">
-		<!-- Loading Overlay -->
-		{#if isLoading}
-			<div class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm z-10 flex items-center justify-center">
-				<div class="text-center">
-					<LoaderCircle class="h-8 w-8 text-indigo-600 dark:text-indigo-400 animate-spin mx-auto mb-2" />
-					<p class="text-sm text-gray-600 dark:text-gray-400">
-						{analysisSteps[analysisStep]?.title || 'Analyzing...'}
-					</p>
-				</div>
+	<!-- Main Form Card (hidden during analysis) -->
+	{#if !isLoading}
+		<div class="w-full max-w-4xl bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-200">
+			<div class="mb-6 border-l-4 border-indigo-500 pl-4">
+				<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+					Analyze Your Issue
+				</h2>
+				<p class="text-sm text-gray-600 dark:text-gray-400">
+					Tell us about your issue and we'll check if it's been fixed in newer SDK versions.
+				</p>
 			</div>
-		{/if}
-
-		<div class="mb-6 border-l-4 border-indigo-500 pl-4">
-			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-				Analyze Your Issue
-			</h2>
-			<p class="text-sm text-gray-600 dark:text-gray-400">
-				Tell us about your issue and we'll check if it's been fixed in newer SDK versions.
-			</p>
-		</div>
 
 		<form method="POST" use:enhance={() => {
 			isLoading = true;
@@ -246,17 +237,30 @@
 				helper={descriptionHelper ? null : "Be specific! Include error messages, expected vs actual behavior, or any relevant context."}
 			/>
 
+			<!-- Form Status Feedback -->
+			<div class="flex justify-center mb-4">
+				{#if !isFormValid}
+					<p class="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700">
+						Please fill out all fields. The description must be at least 10 characters long.
+					</p>
+				{:else if !result}
+					<p class="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full border border-green-200 dark:border-green-700">
+						Ready to analyze! Click the button below.
+					</p>
+				{/if}
+			</div>
+
 			<!-- Submit Button -->
 			<div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 -mx-2">
-				<div class="flex flex-col sm:flex-row gap-4">
+				<div class="flex flex-col sm:flex-row gap-4 justify-center">
 					<Button
 						type="submit"
 						variant="primary"
-						disabled={isLoading || !isFormValid}
-						icon={isLoading ? LoaderCircle : Search}
-						class="flex-1 sm:flex-none justify-center py-3 px-8 text-base font-medium shadow-lg hover:shadow-xl transition-shadow"
+						disabled={!isFormValid}
+						icon={Search}
+						class="sm:flex-none justify-center py-3 px-8 text-base font-medium shadow-lg hover:shadow-xl transition-shadow"
 					>
-						{isLoading ? 'Analyzing Your Issue...' : 'Check If Fixed'}
+						Check If Fixed
 					</Button>
 					
 					{#if result}
@@ -264,40 +268,27 @@
 							type="button"
 							variant="secondary"
 							onclick={resetForm}
-							class="flex-1 sm:flex-none justify-center"
+							class="sm:flex-none justify-center"
 						>
 							New Analysis
 						</Button>
 					{/if}
 				</div>
-				
-				{#if !isFormValid && !isLoading}
-					<div class="mt-3 flex items-center justify-center">
-						<p class="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
-							Please fill out all fields. The description must be at least 10 characters long.
-						</p>
-					</div>
-				{:else if isFormValid && !isLoading && !result}
-					<div class="mt-3 flex items-center justify-center">
-						<p class="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-200 dark:border-green-700">
-							Ready to analyze! Click the button above.
-						</p>
-					</div>
-				{/if}
 			</div>
 		</form>
-	</div>
+		</div>
+	{/if}
 
 	<!-- Analysis Progress (shown during loading) -->
 	{#if isLoading}
-		<div class="mb-8 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+		<div class="w-full max-w-4xl mb-8 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
 			<AnalysisProgress currentStep={analysisStep} steps={analysisSteps} />
 		</div>
 	{/if}
 
 	<!-- Error Display -->
 	{#if error}
-		<div class="mb-6">
+		<div class="w-full max-w-4xl mb-6">
 			<ErrorCard 
 				title="Analysis Failed" 
 				message={error} 
@@ -314,13 +305,13 @@
 
 	<!-- Results Display -->
 	{#if result}
-		<div class="mb-8">
+		<div class="w-full max-w-4xl mb-8">
 			<ResultsCard {result} />
 		</div>
 	{/if}
 
 	<!-- Tips Section -->
-	<div class="animate-in fade-in-0 slide-in-from-bottom-2 duration-700 delay-500">
+	<div class="w-full max-w-4xl animate-in fade-in-0 slide-in-from-bottom-2 duration-700 delay-500">
 		<CollapsiblePanel
 			title="💡 Pro Tips for Better Results"
 			variant="info"
