@@ -3,7 +3,13 @@ version: '3.8'
 services:
   # WTFY Application
   wtfy:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - DATABASE_URL=${DATABASE_URL}
+        - GITHUB_TOKEN=${GITHUB_TOKEN}
+        - OPENAI_API_KEY=${OPENAI_API_KEY}
     ports:
       - "3000:3000"
     environment:

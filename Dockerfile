@@ -9,6 +9,16 @@ RUN npm install -g pnpm
 # Set working directory
 WORKDIR /app
 
+# Accept build arguments for environment variables needed during build
+ARG DATABASE_URL
+ARG GITHUB_TOKEN
+ARG OPENAI_API_KEY
+
+# Set as environment variables for build process
+ENV DATABASE_URL=$DATABASE_URL
+ENV GITHUB_TOKEN=$GITHUB_TOKEN
+ENV OPENAI_API_KEY=$OPENAI_API_KEY
+
 # Copy package files and Sentry tarball
 COPY package.json pnpm-lock.yaml sentry-sveltekit-10.5.0.tgz ./
 
@@ -18,7 +28,7 @@ RUN pnpm install --frozen-lockfile --prod=false
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application (now has access to env vars)
 RUN pnpm run build
 
 # Production stage

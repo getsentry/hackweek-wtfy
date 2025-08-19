@@ -40,16 +40,22 @@ docker-compose up
 # Recommended: Use docker-compose (reads .env automatically)
 docker-compose up --build
 
-# Or build manually with explicit env vars
-docker build -t wtfy .
+# Or build manually with build args (needed for Northflank/CI)
+docker build -t wtfy \
+  --build-arg DATABASE_URL="your-database-url" \
+  --build-arg GITHUB_TOKEN="your-token" \
+  --build-arg OPENAI_API_KEY="your-key" \
+  .
+
+# Then run with runtime env vars
 docker run -p 3000:3000 --env-file .env wtfy
 
-# Or pass env vars individually
-docker run -p 3000:3000 \
-  -e DATABASE_URL="your-database-url" \
-  -e GITHUB_TOKEN="your-token" \
-  -e OPENAI_API_KEY="your-key" \
-  wtfy
+# Or build from .env file
+docker build -t wtfy \
+  --build-arg DATABASE_URL="$(grep DATABASE_URL .env | cut -d '=' -f2)" \
+  --build-arg GITHUB_TOKEN="$(grep GITHUB_TOKEN .env | cut -d '=' -f2)" \
+  --build-arg OPENAI_API_KEY="$(grep OPENAI_API_KEY .env | cut -d '=' -f2)" \
+  .
 ```
 
 ## Production Deployment Options
@@ -111,9 +117,25 @@ docker run -d \
 
 ## Troubleshooting
 
-### "DATABASE_URL environment variable is required"
+### "DATABASE_URL environment variable is required" during build
 
-Make sure you're passing environment variables correctly:
+The build process needs environment variables. Use build arguments:
+
+```bash
+# ✅ Correct: Pass build args during build
+docker build -t wtfy \
+  --build-arg DATABASE_URL="your-database-url" \
+  --build-arg GITHUB_TOKEN="your-token" \
+  --build-arg OPENAI_API_KEY="your-key" \
+  .
+
+# ❌ Wrong: Missing build args
+docker build -t wtfy .
+```
+
+### "DATABASE_URL environment variable is required" during runtime
+
+Make sure you're passing runtime environment variables correctly:
 
 ```bash
 # ✅ Correct: Use docker-compose (reads .env automatically)
@@ -122,9 +144,18 @@ docker-compose up
 # ✅ Correct: Use --env-file flag
 docker run -p 3000:3000 --env-file .env wtfy
 
-# ❌ Wrong: Missing environment variables
+# ❌ Wrong: Missing runtime environment variables
 docker run -p 3000:3000 wtfy
 ```
+
+### For Northflank Deployment:
+
+1. **Build Settings**: Add these as **build arguments** in Northflank:
+   - `DATABASE_URL` = your hosted database connection string
+   - `GITHUB_TOKEN` = your GitHub token
+   - `OPENAI_API_KEY` = your OpenAI key
+2. **Runtime Variables**: Set the same variables as **runtime environment variables**
+3. **Both required**: Build args for `pnpm run build`, env vars for `pnpm start`
 
 ### Check your .env file format:
 
