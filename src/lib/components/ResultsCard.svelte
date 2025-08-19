@@ -88,12 +88,12 @@
 								style="animation-delay: {index * 100}ms"
 							>
 								<div class="flex items-start justify-between">
-									<div class="flex-1">
-										<div class="font-medium text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+									<div class="flex-1 min-w-0 pr-2">
+										<div class="font-medium text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
 											#{pr.number}: {pr.title}
 										</div>
 									</div>
-									<Clock class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors ml-2 flex-shrink-0" />
+									<Clock class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors flex-shrink-0" />
 								</div>
 							</a>
 						{/each}

@@ -112,7 +112,7 @@
 	});
 </script>
 
-<div class="max-w-4xl mx-auto">
+<div class="w-full">
 	<!-- Hero Section -->
 	<div class="text-center mb-12 animate-in fade-in-0 slide-in-from-top-4 duration-700">
 		<div class="flex items-center justify-center mb-4">

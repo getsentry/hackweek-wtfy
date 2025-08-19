@@ -141,35 +141,35 @@
 					onclick={() => onPopulateForm(item.sdk, item.version, item.description)}
 					class="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
 				>
-					<div class="flex items-start space-x-3">
+					<div class="flex items-start space-x-3 w-full overflow-hidden">
 						<!-- Status Icon -->
 						<div class="flex-shrink-0 mt-0.5">
 							<StatusIcon class="h-5 w-5 {getStatusColor(item.result?.status || null)}" />
 						</div>
 
 						<!-- Content -->
-						<div class="flex-1 min-w-0">
+						<div class="flex-1 min-w-0 overflow-hidden">
 							<div class="flex items-center justify-between mb-1">
-								<div class="flex items-center space-x-2">
-									<span class="text-sm font-medium text-gray-900 dark:text-white">
+								<div class="flex items-center space-x-2 min-w-0 flex-1">
+									<span class="text-sm font-medium text-gray-900 dark:text-white truncate">
 										{item.sdk}
 									</span>
-									<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded">
+									<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded flex-shrink-0">
 										v{item.version}
 									</span>
 								</div>
-								<time class="text-xs text-gray-400">
+								<time class="text-xs text-gray-400 flex-shrink-0 ml-2">
 									{formatRelativeTime(item.createdAt)}
 								</time>
 							</div>
 							
-							<p class="text-sm text-gray-600 dark:text-gray-300 mb-2">
+							<p class="text-sm text-gray-600 dark:text-gray-300 mb-2 break-words">
 								{truncateDescription(item.description)}
 							</p>
 
 							{#if item.result}
-								<div class="flex items-center justify-between">
-									<span class="text-xs font-medium {
+								<div class="flex items-center justify-between overflow-hidden">
+									<span class="text-xs font-medium flex-shrink-0 {
 										item.result.status === 'fixed' ? 'text-green-600 dark:text-green-400' :
 										item.result.status === 'not_fixed' ? 'text-red-600 dark:text-red-400' :
 										'text-yellow-600 dark:text-yellow-400'
@@ -178,18 +178,19 @@
 										 item.result.status === 'not_fixed' ? '❌ Not Fixed' : 
 										 '❓ Unknown'}
 									</span>
-									<div class="flex items-center space-x-2">
+									<div class="flex items-center space-x-2 flex-shrink-0 ml-2">
 										{#if item.result.prs && item.result.prs.length > 0}
 											<span class="text-xs text-gray-500 dark:text-gray-400">
 												{item.result.prs.length} PR{item.result.prs.length === 1 ? '' : 's'}
 											</span>
 										{/if}
-										<ConfidenceMeter 
-											confidence={item.result.confidence} 
-											size="sm" 
-											showLabel={false}
-											class="w-16"
-										/>
+										<div class="w-12">
+											<ConfidenceMeter 
+												confidence={item.result.confidence} 
+												size="sm" 
+												showLabel={false}
+											/>
+										</div>
 									</div>
 								</div>
 							{:else}

@@ -1,4 +1,4 @@
-# WTFY - "Was It Fixed Yet?" Implementation Plan
+# WTFY - "Was This Fixed Yet?" Implementation Plan
 
 > _Because debugging is hard enough without wondering if you're chasing ghosts from SDK versions past._
 
