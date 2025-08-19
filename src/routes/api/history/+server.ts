@@ -22,7 +22,7 @@ export const GET: RequestHandler = async () => {
 			.from(requests)
 			.leftJoin(results, eq(requests.id, results.requestId))
 			.orderBy(desc(requests.createdAt))
-			.limit(10);
+			.limit(5);
 
 		// Transform to a cleaner format
 		const historyItems = recentRequests.map((item) => ({

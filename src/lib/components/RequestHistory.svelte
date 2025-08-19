@@ -80,7 +80,7 @@
 		return date.toLocaleDateString();
 	}
 
-	function truncateDescription(description: string, maxLength = 80): string {
+	function truncateDescription(description: string, maxLength = 40): string {
 		if (description.length <= maxLength) return description;
 		return description.substring(0, maxLength) + '...';
 	}
@@ -90,47 +90,38 @@
 	});
 </script>
 
-<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-	<div class="flex items-center justify-between mb-6">
-		<div class="flex items-center">
-			<History class="h-5 w-5 text-gray-400 mr-2" />
-			<h3 class="text-lg font-medium text-gray-900 dark:text-white">
-				Recent Analyses
-			</h3>
-		</div>
+<div class="space-y-3">
+	<!-- Refresh Button -->
+	<div class="flex justify-end">
 		<Button
 			variant="secondary"
 			size="sm"
 			onclick={fetchHistory}
 			icon={RotateCcw}
 			disabled={isLoading}
+			class="text-xs"
 		>
 			Refresh
 		</Button>
 	</div>
 
 	{#if isLoading}
-		<div class="space-y-3">
+		<div class="space-y-2">
 			{#each Array(3) as _}
-				<div class="animate-pulse flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-					<div class="w-6 h-6 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
-					<div class="flex-1 space-y-2">
-						<div class="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
-						<div class="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
-					</div>
+				<div class="animate-pulse p-2 bg-gray-50 dark:bg-gray-700 rounded">
+					<div class="h-3 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-1"></div>
+					<div class="h-2 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
 				</div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="text-center py-6">
-			<CircleAlert class="h-8 w-8 text-red-400 mx-auto mb-2" />
-			<p class="text-sm text-red-600 dark:text-red-400">{error}</p>
+		<div class="text-center py-3">
+			<p class="text-xs text-red-600 dark:text-red-400">{error}</p>
 		</div>
 	{:else if history.length === 0}
-		<div class="text-center py-8">
-			<History class="h-12 w-12 text-gray-300 mx-auto mb-4" />
-			<p class="text-gray-500 dark:text-gray-400">No previous analyses yet</p>
-			<p class="text-sm text-gray-400 dark:text-gray-500">Your analysis history will appear here</p>
+		<div class="text-center py-6">
+			<History class="h-6 w-6 text-gray-300 mx-auto mb-2" />
+			<p class="text-xs text-gray-500 dark:text-gray-400">No history yet</p>
 		</div>
 	{:else}
 		<div class="space-y-2">
@@ -139,80 +130,62 @@
 				<button
 					type="button"
 					onclick={() => onPopulateForm(item.sdk, item.version, item.description)}
-					class="w-full text-left p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group"
+					class="w-full text-left p-2 bg-gray-50 dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group text-xs"
 				>
-					<div class="flex items-start space-x-3 w-full overflow-hidden">
+					<div class="flex items-start space-x-2 w-full overflow-hidden">
 						<!-- Status Icon -->
-						<div class="flex-shrink-0 mt-0.5">
-							<StatusIcon class="h-5 w-5 {getStatusColor(item.result?.status || null)}" />
+						<div class="flex-shrink-0 mt-1">
+							<StatusIcon class="h-4 w-4 {getStatusColor(item.result?.status || null)}" />
 						</div>
 
 						<!-- Content -->
 						<div class="flex-1 min-w-0 overflow-hidden">
 							<div class="flex items-center justify-between mb-1">
-								<div class="flex items-center space-x-2 min-w-0 flex-1">
-									<span class="text-sm font-medium text-gray-900 dark:text-white truncate">
-										{item.sdk}
-									</span>
-									<span class="text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded flex-shrink-0">
-										v{item.version}
-									</span>
-								</div>
-								<time class="text-xs text-gray-400 flex-shrink-0 ml-2">
+								<span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+									{item.sdk.replace('sentry-', '')}
+								</span>
+								<time class="text-xs text-gray-400 flex-shrink-0">
 									{formatRelativeTime(item.createdAt)}
 								</time>
 							</div>
 							
-							<p class="text-sm text-gray-600 dark:text-gray-300 mb-2 break-words">
+							<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+								v{item.version}
+							</div>
+							
+							<p class="text-xs text-gray-600 dark:text-gray-300 mb-2 break-words line-clamp-2">
 								{truncateDescription(item.description)}
 							</p>
 
 							{#if item.result}
-								<div class="flex items-center justify-between overflow-hidden">
-									<span class="text-xs font-medium flex-shrink-0 {
+								<div class="flex items-center justify-between">
+									<span class="text-xs font-medium {
 										item.result.status === 'fixed' ? 'text-green-600 dark:text-green-400' :
 										item.result.status === 'not_fixed' ? 'text-red-600 dark:text-red-400' :
 										'text-yellow-600 dark:text-yellow-400'
 									}">
-										{item.result.status === 'fixed' ? '✅ Fixed' : 
-										 item.result.status === 'not_fixed' ? '❌ Not Fixed' : 
-										 '❓ Unknown'}
+										{item.result.status === 'fixed' ? '✅' : 
+										 item.result.status === 'not_fixed' ? '❌' : 
+										 '❓'} {item.result.confidence}%
 									</span>
-									<div class="flex items-center space-x-2 flex-shrink-0 ml-2">
-										{#if item.result.prs && item.result.prs.length > 0}
-											<span class="text-xs text-gray-500 dark:text-gray-400">
-												{item.result.prs.length} PR{item.result.prs.length === 1 ? '' : 's'}
-											</span>
-										{/if}
-										<div class="w-12">
-											<ConfidenceMeter 
-												confidence={item.result.confidence} 
-												size="sm" 
-												showLabel={false}
-											/>
-										</div>
-									</div>
+									{#if item.result.prs && item.result.prs.length > 0}
+										<span class="text-xs text-gray-500 dark:text-gray-400">
+											{item.result.prs.length} PR{item.result.prs.length === 1 ? '' : 's'}
+										</span>
+									{/if}
 								</div>
 							{:else}
-								<span class="text-xs text-gray-500 dark:text-gray-400">No result yet</span>
+								<span class="text-xs text-gray-500 dark:text-gray-400">Analyzing...</span>
 							{/if}
 						</div>
 
 						<!-- Populate Icon (appears on hover) -->
-						<div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-							<RotateCcw class="h-4 w-4 text-gray-400" />
+						<div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
+							<RotateCcw class="h-3 w-3 text-gray-400" />
 						</div>
 					</div>
 				</button>
 			{/each}
 		</div>
-
-		{#if history.length >= 10}
-			<div class="mt-4 text-center">
-				<p class="text-xs text-gray-500 dark:text-gray-400">
-					Showing last 10 analyses
-				</p>
-			</div>
-		{/if}
 	{/if}
 </div>

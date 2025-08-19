@@ -72,7 +72,7 @@
 		version = '';
 		description = '';
 		analysisStep = 0;
-		// Clear the form result by navigating to the same page
+		// Clear the form result by navigating to the same page to reset form action state
 		window.location.href = window.location.pathname;
 	}
 
@@ -86,8 +86,7 @@
 		sdk = historySdk;
 		version = historyVersion;
 		description = historyDescription;
-		// Clear any existing results
-		window.location.href = window.location.pathname;
+		// Don't reload - just populate the form
 	}
 
 	function retryAnalysis() {
@@ -183,106 +182,163 @@
 		</div>
 	{/if}
 
-	<!-- Main Form Card (hidden during analysis) -->
+	<!-- Main Content Layout (hidden during analysis) -->
 	{#if !isLoading}
-		<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-200">
-			<div class="mb-6 border-l-4 border-indigo-500 pl-4">
-				<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-					Analyze Your Issue
-				</h2>
-				<p class="text-sm text-gray-600 dark:text-gray-400">
-					Tell us about your issue and we'll check if it's been fixed in newer SDK versions.
-				</p>
-			</div>
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+			<!-- Main Form Panel (2/3 width on large screens) -->
+			<div class="lg:col-span-2">
+				<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-200 h-fit">
+					<div class="mb-6 border-l-4 border-indigo-500 pl-4">
+						<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+							Analyze Your Issue
+						</h2>
+						<p class="text-sm text-gray-600 dark:text-gray-400">
+							Tell us about your issue and we'll check if it's been fixed in newer SDK versions.
+						</p>
+					</div>
 
-		<form method="POST" use:enhance={() => {
-			isLoading = true;
-			analysisStep = 0;
-			return async ({ update }) => {
-				await update();
-				isLoading = false;
-				analysisStep = 0;
-			};
-		}} class="space-y-6">
-			<!-- SDK Selection -->
-			<FormField
-				id="sdk"
-				name="sdk"
-				label="Select SDK"
-				type="select"
-				required
-				placeholder="Choose an SDK..."
-				options={sdks}
-				bind:value={sdk}
-				error={validationErrors.sdk}
-			/>
+					<form method="POST" use:enhance={() => {
+						isLoading = true;
+						analysisStep = 0;
+						return async ({ update }) => {
+							await update();
+							isLoading = false;
+							analysisStep = 0;
+						};
+					}} class="space-y-6">
+						<!-- SDK Selection -->
+						<FormField
+							id="sdk"
+							name="sdk"
+							label="Select SDK"
+							type="select"
+							required
+							placeholder="Choose an SDK..."
+							options={sdks}
+							bind:value={sdk}
+							error={validationErrors.sdk}
+						/>
 
-			<!-- Version Input -->
-			<FormField
-				id="version"
-				name="version"
-				label="Your Current Version"
-				type="text"
-				required
-				placeholder="e.g., 7.0.0 or 1.25.1"
-				bind:value={version}
-				error={validationErrors.version}
-				helper="We'll check if your issue was fixed in any version after this one."
-			/>
+						<!-- Version Input -->
+						<FormField
+							id="version"
+							name="version"
+							label="Your Current Version"
+							type="text"
+							required
+							placeholder="e.g., 7.0.0 or 1.25.1"
+							bind:value={version}
+							error={validationErrors.version}
+							helper="We'll check if your issue was fixed in any version after this one."
+						/>
 
-			<!-- Issue Description -->
-			<FormField
-				id="description"
-				name="description"
-				label="Describe Your Issue"
-				type="textarea"
-				required
-				rows={4}
-				placeholder="Describe the bug, error, or unexpected behavior you're experiencing..."
-				bind:value={description}
-				error={descriptionHelper ? descriptionHelper : null}
-				helper={descriptionHelper ? null : "Be specific! Include error messages, expected vs actual behavior, or any relevant context."}
-			/>
+						<!-- Issue Description -->
+						<FormField
+							id="description"
+							name="description"
+							label="Describe Your Issue"
+							type="textarea"
+							required
+							rows={4}
+							placeholder="Describe the bug, error, or unexpected behavior you're experiencing..."
+							bind:value={description}
+							error={descriptionHelper ? descriptionHelper : null}
+							helper={descriptionHelper ? null : "Be specific! Include error messages, expected vs actual behavior, or any relevant context."}
+						/>
 
-			<!-- Form Status Feedback -->
-			<div class="flex justify-center mb-4">
-				{#if !isFormValid}
-					<p class="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700">
-						Please fill out all fields. The description must be at least 10 characters long.
-					</p>
-				{:else if !result}
-					<p class="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full border border-green-200 dark:border-green-700">
-						Ready to analyze! Click the button below.
-					</p>
-				{/if}
-			</div>
+						<!-- Form Status Feedback -->
+						<div class="flex justify-center mb-4">
+							{#if !isFormValid}
+								<p class="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-full border border-gray-200 dark:border-gray-700">
+									Please fill out all fields. The description must be at least 10 characters long.
+								</p>
+							{:else if !result}
+								<p class="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-4 py-2 rounded-full border border-green-200 dark:border-green-700">
+									Ready to analyze! Click the button below.
+								</p>
+							{/if}
+						</div>
 
-			<!-- Submit Button -->
-			<div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 -mx-2">
-				<div class="flex flex-col sm:flex-row gap-4 justify-center">
-					<Button
-						type="submit"
-						variant="primary"
-						disabled={!isFormValid}
-						icon={Search}
-						class="sm:flex-none justify-center py-3 px-8 text-base font-medium shadow-lg hover:shadow-xl transition-shadow"
+						<!-- Submit Button -->
+						<div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 -mx-2">
+							<div class="flex flex-col gap-4 justify-center">
+								<Button
+									type="submit"
+									variant="primary"
+									disabled={!isFormValid}
+									icon={Search}
+									class="justify-center py-3 px-8 text-base font-medium shadow-lg hover:shadow-xl transition-shadow"
+								>
+									Check If Fixed
+								</Button>
+								
+								{#if result}
+									<Button
+										type="button"
+										variant="secondary"
+										onclick={resetForm}
+										class="justify-center"
+									>
+										New Analysis
+									</Button>
+								{/if}
+							</div>
+						</div>
+					</form>
+				</div>
+
+				<!-- Pro Tips Section (underneath form) -->
+				<div class="mt-6">
+					<CollapsiblePanel
+						title="💡 Pro Tips for Better Results"
+						variant="info"
+						bind:isExpanded={isProTipsExpanded}
 					>
-						Check If Fixed
-					</Button>
-					
-					{#if result}
-						<Button
-							type="button"
-							variant="secondary"
-							onclick={resetForm}
-							class="sm:flex-none justify-center"
-						>
-							New Analysis
-						</Button>
-					{/if}
+						{#snippet children()}
+							<div class="grid md:grid-cols-2 gap-4">
+								<div>
+									<h4 class="font-medium text-indigo-900 dark:text-indigo-200 mb-2">📝 Description Best Practices</h4>
+									<ul class="space-y-1 text-sm text-indigo-800 dark:text-indigo-300">
+										<li>• Include specific error messages or stack traces</li>
+										<li>• Mention the platform/environment (Node.js, browser, etc.)</li>
+										<li>• Describe expected vs actual behavior</li>
+									</ul>
+								</div>
+								<div>
+									<h4 class="font-medium text-indigo-900 dark:text-indigo-200 mb-2">🔍 What We Look For</h4>
+									<ul class="space-y-1 text-sm text-indigo-800 dark:text-indigo-300">
+										<li>• Bug fixes in commit messages</li>
+										<li>• Performance improvements and optimizations</li>
+										<li>• API changes that might resolve your issue</li>
+									</ul>
+								</div>
+							</div>
+							<div class="mt-4 p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+								<p class="text-sm text-indigo-800 dark:text-indigo-300">
+									💡 <strong>Pro tip:</strong> The more specific your description, the better our AI can match it against fixes in the codebase.
+								</p>
+							</div>
+						{/snippet}
+					</CollapsiblePanel>
 				</div>
 			</div>
-		</form>
+
+			<!-- Recent Analyses Panel (1/3 width on large screens) -->
+			<div class="lg:col-span-1">
+				<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-300 h-fit sticky top-8">
+					<div class="p-4 border-b border-gray-200 dark:border-gray-700">
+						<h3 class="text-lg font-medium text-gray-900 dark:text-white">
+							📋 Recent Analyses
+						</h3>
+						<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+							Last 5 • Click to reuse
+						</p>
+					</div>
+					<div class="p-4">
+						<RequestHistory onPopulateForm={populateFromHistory} />
+					</div>
+				</div>
+			</div>
 		</div>
 	{/if}
 
@@ -316,55 +372,4 @@
 			<ResultsCard {result} />
 		</div>
 	{/if}
-
-	<!-- Request History Section -->
-	<div class="mb-8">
-		<CollapsiblePanel
-			title="📋 Recent Analyses"
-			variant="info"
-			bind:isExpanded={isHistoryExpanded}
-		>
-			{#snippet children()}
-				<div class="mx-6 mb-6">
-					<RequestHistory onPopulateForm={populateFromHistory} />
-				</div>
-			{/snippet}
-		</CollapsiblePanel>
-	</div>
-
-	<!-- Tips Section -->
-	<div class="animate-in fade-in-0 slide-in-from-bottom-2 duration-700 delay-500">
-		<CollapsiblePanel
-			title="💡 Pro Tips for Better Results"
-			variant="info"
-			bind:isExpanded={isProTipsExpanded}
-			class="mt-12"
-		>
-			{#snippet children()}
-				<div class="grid md:grid-cols-2 gap-4">
-					<div>
-						<h4 class="font-medium text-indigo-900 dark:text-indigo-200 mb-2">📝 Description Best Practices</h4>
-						<ul class="space-y-1 text-sm text-indigo-800 dark:text-indigo-300">
-							<li>• Include specific error messages or stack traces</li>
-							<li>• Mention the platform/environment (Node.js, browser, etc.)</li>
-							<li>• Describe expected vs actual behavior</li>
-						</ul>
-					</div>
-					<div>
-						<h4 class="font-medium text-indigo-900 dark:text-indigo-200 mb-2">🔍 What We Look For</h4>
-						<ul class="space-y-1 text-sm text-indigo-800 dark:text-indigo-300">
-							<li>• Bug fixes in commit messages</li>
-							<li>• Performance improvements and optimizations</li>
-							<li>• API changes that might resolve your issue</li>
-						</ul>
-					</div>
-				</div>
-				<div class="mt-4 p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
-					<p class="text-sm text-indigo-800 dark:text-indigo-300">
-						💡 <strong>Pro tip:</strong> The more specific your description, the better our AI can match it against fixes in the codebase.
-					</p>
-				</div>
-			{/snippet}
-		</CollapsiblePanel>
-	</div>
 </div>
