@@ -10,6 +10,7 @@ export { default as AnalysisProgress } from './components/AnalysisProgress.svelt
 export { default as ErrorCard } from './components/ErrorCard.svelte';
 export { default as ConfidenceMeter } from './components/ConfidenceMeter.svelte';
 export { default as EmptyState } from './components/EmptyState.svelte';
+export { default as RequestHistory } from './components/RequestHistory.svelte';
 
 // Utility Functions
 export { parseMarkdownLinks, parseMarkdown, sanitizeHtml } from './utils/markdown';

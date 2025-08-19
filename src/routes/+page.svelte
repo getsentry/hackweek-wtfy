@@ -2,7 +2,7 @@
 	import { Search, LoaderCircle, TriangleAlert, CircleAlert, TestTube, Zap, Clock, CheckCircle2 } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { dev } from '$app/environment';
-	import { Button, CollapsiblePanel, FormField, ResultsCard, SkeletonLoader, AnalysisProgress, ErrorCard } from '$lib';
+	import { Button, CollapsiblePanel, FormField, ResultsCard, SkeletonLoader, AnalysisProgress, ErrorCard, RequestHistory } from '$lib';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -17,6 +17,7 @@
 	// Collapsible panel state
 	let isWarningExpanded = $state(false);
 	let isProTipsExpanded = $state(false);
+	let isHistoryExpanded = $state(false);
 
 	// Analysis steps for progress indicator
 	const analysisSteps = [
@@ -79,6 +80,14 @@
 		sdk = 'sentry-javascript';
 		version = '7.48.0';
 		description = 'My Web vital measurements are very inaccurate and differ a lot from the official web vitals library measurements as well as from the chrome dev tool vitals for the same pageload. Is there an SDK bug?';
+	}
+
+	function populateFromHistory(historySdk: string, historyVersion: string, historyDescription: string) {
+		sdk = historySdk;
+		version = historyVersion;
+		description = historyDescription;
+		// Clear any existing results
+		window.location.href = window.location.pathname;
 	}
 
 	function retryAnalysis() {
@@ -307,6 +316,21 @@
 			<ResultsCard {result} />
 		</div>
 	{/if}
+
+	<!-- Request History Section -->
+	<div class="mb-8">
+		<CollapsiblePanel
+			title="📋 Recent Analyses"
+			variant="info"
+			bind:isExpanded={isHistoryExpanded}
+		>
+			{#snippet children()}
+				<div class="mx-6 mb-6">
+					<RequestHistory onPopulateForm={populateFromHistory} />
+				</div>
+			{/snippet}
+		</CollapsiblePanel>
+	</div>
 
 	<!-- Tips Section -->
 	<div class="animate-in fade-in-0 slide-in-from-bottom-2 duration-700 delay-500">
