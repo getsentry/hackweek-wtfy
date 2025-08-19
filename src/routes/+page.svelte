@@ -2,6 +2,7 @@
 	import { Search, LoaderCircle, TriangleAlert, CircleAlert, TestTube, Zap, Clock, CheckCircle2 } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { dev } from '$app/environment';
+	import { v4 as uuidv4 } from 'uuid';
 	import { Button, CollapsiblePanel, FormField, ResultsCard, SkeletonLoader, AnalysisProgress, ErrorCard, RequestHistory } from '$lib';
 	import type { ActionData } from './$types';
 
@@ -13,7 +14,7 @@
 	let description = $state('');
 	let isLoading = $state(false);
 	let analysisStep = $state(0);
-	let currentRequestId = $state<number | null>(null);
+	let currentRequestId = $state<string | null>(null);
 	
 	// Collapsible panel state
 	let isWarningExpanded = $state(false);
@@ -33,11 +34,12 @@
 	const result = $derived(form?.success ? form.result : null);
 	const error = $derived(form?.error || null);
 	
-	// Start progress polling when we get a request ID
+	// Handle form completion and results
 	$effect(() => {
-		if (form?.success && form.requestId && !result?.fromCache) {
-			currentRequestId = form.requestId;
-			startProgressPolling(form.requestId);
+		if (form?.success && form.result && !form.result.fromCache) {
+			// Analysis completed, stop any ongoing polling
+			isLoading = false;
+			analysisStep = 5; // Show final step completed
 		}
 	});
 
@@ -109,7 +111,7 @@
 	}
 
 	// Real-time progress polling
-	async function startProgressPolling(requestId: number) {
+	async function startProgressPolling(requestId: string) {
 		if (!requestId) return;
 		
 		console.log(`Starting progress polling for request ${requestId}`);
@@ -236,14 +238,22 @@
 						</p>
 					</div>
 
-					<form method="POST" use:enhance={() => {
+					<form method="POST" use:enhance={({formData}) => {
+						// Generate request ID and start polling immediately
+						const requestId = uuidv4();
+						formData.append('requestId', requestId);
+						
+						currentRequestId = requestId;
 						isLoading = true;
 						analysisStep = 0;
-						currentRequestId = null;
+						
+						console.log(`Generated request ID: ${requestId}, starting progress polling`);
+						startProgressPolling(requestId);
+						
 						return async ({ update }) => {
+							// Add request ID to form data
 							await update();
 							isLoading = false;
-							// Don't reset analysisStep here - let progress polling handle it
 						};
 					}} class="space-y-6">
 						<!-- SDK Selection -->

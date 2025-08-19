@@ -3,7 +3,7 @@ import { relations } from 'drizzle-orm';
 
 // Requests table - stores user queries
 export const requests = pgTable('requests', {
-	id: serial('id').primaryKey(),
+	id: text('id').primaryKey(), // UUID generated on client
 	sdk: text('sdk').notNull(), // e.g., 'sentry-javascript', 'sentry-python'
 	version: text('version').notNull(), // e.g., '7.0.0'
 	description: text('description').notNull(), // User's issue description
@@ -13,7 +13,7 @@ export const requests = pgTable('requests', {
 // Results table - stores analysis results
 export const results = pgTable('results', {
 	id: serial('id').primaryKey(),
-	requestId: integer('request_id')
+	requestId: text('request_id')
 		.references(() => requests.id)
 		.notNull(),
 	status: text('status', { enum: ['fixed', 'not_fixed', 'unknown'] }).notNull(),
@@ -34,7 +34,7 @@ export const cache = pgTable('cache', {
 // Progress table - tracks real-time analysis progress
 export const progress = pgTable('progress', {
 	id: serial('id').primaryKey(),
-	requestId: integer('request_id')
+	requestId: text('request_id')
 		.references(() => requests.id)
 		.notNull(),
 	currentStep: integer('current_step').notNull().default(0),

@@ -7,13 +7,16 @@ export const actions: Actions = {
 			console.log('xx form action ');
 			const formData = await request.formData();
 			const data = {
+				requestId: formData.get('requestId') as string,
 				sdk: formData.get('sdk') as string,
 				version: formData.get('version') as string,
 				description: formData.get('description') as string
 			};
 
+			console.log('xx form action data', data);
+
 			// Basic validation before calling API
-			if (!data.sdk || !data.version || !data.description) {
+			if (!data.requestId || !data.sdk || !data.version || !data.description) {
 				return fail(400, {
 					error: 'All fields are required'
 				});

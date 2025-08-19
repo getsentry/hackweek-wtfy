@@ -3,10 +3,10 @@ import { db, progress } from '../db/index.js';
 import { eq } from 'drizzle-orm';
 
 export class ProgressTracker {
-	private requestId: number;
+	private requestId: string;
 	private totalSteps: number;
 
-	constructor(requestId: number, totalSteps = 5) {
+	constructor(requestId: string, totalSteps = 5) {
 		this.requestId = requestId;
 		this.totalSteps = totalSteps;
 	}
@@ -95,7 +95,7 @@ export class ProgressTracker {
 	/**
 	 * Get current progress for a request
 	 */
-	static async getProgress(requestId: number) {
+	static async getProgress(requestId: string) {
 		try {
 			const result = await db
 				.select()

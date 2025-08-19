@@ -13,6 +13,10 @@ Sentry.init({
 			recordOutputs: true
 		})
 	],
-	sendDefaultPii: true,
-	debug: true
+	sendDefaultPii: true
+	// debug: true
+});
+
+process.on('sveltekit:shutdown', () => {
+	Sentry.close(2000);
 });

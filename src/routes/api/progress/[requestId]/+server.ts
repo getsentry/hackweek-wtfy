@@ -4,9 +4,9 @@ import { ProgressTracker } from '$lib/server/services/progress-tracker.js';
 
 export const GET: RequestHandler = async ({ params }) => {
 	try {
-		const requestId = parseInt(params.requestId);
+		const requestId = params.requestId;
 
-		if (isNaN(requestId)) {
+		if (!requestId || requestId.trim().length === 0) {
 			return error(400, 'Invalid request ID');
 		}
 

@@ -13,6 +13,7 @@ import type { PullRequest, GitHubPullRequest } from '$lib/types.js';
 
 // Request schema validation
 const AnalyzeRequestSchema = z.object({
+	requestId: z.string().min(1, 'Request ID is required'),
 	sdk: z.string().min(1, 'SDK is required'),
 	version: z.string().min(1, 'Version is required'),
 	description: z.string().min(10, 'Description must be at least 10 characters')
@@ -58,7 +59,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		// Get repository for SDK
 		const repo = getRepoForSdk(validatedData.sdk);
 
-		console.log({ repo });
+		console.log('xx', { repo, validatedData });
 
 		if (!repo) {
 			return error(400, `Unsupported SDK: ${validatedData.sdk}`);
@@ -96,17 +97,14 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			});
 		}
 
-		// Store request in database
-		const requestResult = await db
-			.insert(requests)
-			.values({
-				sdk: validatedData.sdk,
-				version: validatedData.version,
-				description: validatedData.description
-			})
-			.returning();
-
-		const requestId = requestResult[0].id;
+		// Store request in database with client-provided ID
+		const requestId = validatedData.requestId;
+		await db.insert(requests).values({
+			id: requestId,
+			sdk: validatedData.sdk,
+			version: validatedData.version,
+			description: validatedData.description
+		});
 
 		// Initialize progress tracking
 		const progressTracker = new ProgressTracker(requestId);

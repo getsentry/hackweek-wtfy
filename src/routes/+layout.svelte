@@ -21,9 +21,6 @@
 					<h1 class="text-xl font-semibold text-gray-900 dark:text-white">
 						WTFY
 					</h1>
-					<span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
-						Was This Fixed Yet?
-					</span>
 				</div>
 				<a href="https://sentry.io" class="text-xs text-gray-400 dark:text-gray-500 flex flex-row items-center">
 					<img src="/sentry-logo.svg" alt="Sentry Logo" class="h-8 w-8" />
