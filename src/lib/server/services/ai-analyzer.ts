@@ -45,7 +45,7 @@ ${issueDescription}`
 					}
 				],
 				temperature: 0.3,
-				max_tokens: 10_000
+				max_tokens: 400
 			});
 
 			const keywords = JSON.parse(response.choices[0]?.message?.content || '[]');
@@ -55,6 +55,50 @@ ${issueDescription}`
 			console.error('Keyword extraction failed:', error);
 			Sentry.captureException(error);
 			return [];
+		}
+	}
+
+	/**
+	 * Extract relevant keywords from issue description for commit searching
+	 */
+	async summarizeReasoning(originalReasoning: string): Promise<string> {
+		try {
+			const response = await this.openai.chat.completions.create({
+				model: 'gpt-4.1',
+				messages: [
+					{
+						role: 'system',
+						content: `You are a sofware engineer. 
+	You'll be a text containing potentially repeating information and PR numbers of PRs that might have fixed an issue.
+	Your job is to summarize this text, remove duplication and bring it into a readable and easy to understand format.
+	Always consider the entire text (${originalReasoning.length} characters) and the context!
+	Always return a string!`
+					},
+					{
+						role: 'user',
+						content: `Here's the reasoning:\n${originalReasoning}`
+					}
+				],
+				temperature: 0.3,
+				max_tokens: 10_000
+			});
+
+			const result = response.choices[0]?.message?.content;
+
+			if (!result || !result.length) {
+				Sentry.captureException('Summary generation went wrong', {
+					extra: {
+						originalReasoning
+					}
+				});
+				return 'Error during summary generation';
+			}
+
+			return result;
+		} catch (error) {
+			console.error('Keyword extraction failed:', error);
+			Sentry.captureException(error);
+			return 'Error during summary generation';
 		}
 	}
 
@@ -283,7 +327,7 @@ ${issueDescription}`
 	/**
 	 * Combine commit and PR analysis results (public method for two-pass analysis)
 	 */
-	combineAnalysis(
+	async combineAnalysis(
 		commitAnalysis: {
 			status: AnalysisStatus;
 			confidence: number;
@@ -297,12 +341,12 @@ ${issueDescription}`
 			relevantPrNumbers: number[];
 		},
 		allPrs: PullRequest[]
-	): {
+	): Promise<{
 		status: AnalysisStatus;
 		confidence: number;
 		summary: string;
 		relevantPrs: PullRequest[];
-	} {
+	}> {
 		// Weight PR analysis higher since PRs usually have more context
 		const commitWeight = 0.3;
 		const prWeight = 0.7;
@@ -323,7 +367,12 @@ ${issueDescription}`
 		const relevantPrs = allPrs.filter((pr) => prAnalysis.relevantPrNumbers.includes(pr.number));
 
 		// Generate summary
-		const summary = this.generateSummary(status, commitAnalysis, prAnalysis, relevantPrs.length);
+		const summary = await this.generateSummary(
+			status,
+			commitAnalysis,
+			prAnalysis,
+			relevantPrs.length
+		);
 
 		return {
 			status,
@@ -391,22 +440,30 @@ Focus on the titles and descriptions to determine relevance.`;
 	/**
 	 * Generate human-readable summary
 	 */
-	private generateSummary(
+	private async generateSummary(
 		status: AnalysisStatus,
-		commitAnalysis: any,
-		prAnalysis: any,
+		commitAnalysis: {
+			reasoning: string;
+		},
+		prAnalysis: {
+			reasoning: string;
+		},
 		relevantPrCount: number
-	): string {
+	): Promise<string> {
+		const minimalAnalysisReasoning = await this.summarizeReasoning(
+			prAnalysis.reasoning ?? commitAnalysis.reasoning
+		);
+
 		if (status === 'fixed') {
 			if (relevantPrCount > 0) {
-				return `Found ${relevantPrCount} relevant pull request${relevantPrCount === 1 ? '' : 's'} that likely fix${relevantPrCount === 1 ? 'es' : ''} this issue. ${prAnalysis.reasoning}`;
+				return `Found ${relevantPrCount} relevant pull request${relevantPrCount === 1 ? '' : 's'} that likely fix${relevantPrCount === 1 ? 'es' : ''} this issue. ${minimalAnalysisReasoning}`;
 			} else {
-				return `Found commits that likely fix this issue. ${commitAnalysis.reasoning}`;
+				return `Found commits that likely fix this issue. ${minimalAnalysisReasoning}`;
 			}
 		} else if (status === 'not_fixed') {
 			return `No clear fixes found for this issue in recent commits or pull requests. The issue may still exist.`;
 		} else {
-			return `Unable to determine if this issue has been fixed. ${commitAnalysis.reasoning || prAnalysis.reasoning}`;
+			return `Unable to determine if this issue has been fixed. ${minimalAnalysisReasoning}`;
 		}
 	}
 }

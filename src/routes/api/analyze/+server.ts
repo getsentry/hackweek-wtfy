@@ -285,7 +285,7 @@ async function performAnalysis(
 		const prAnalysis = await ai.analyzePullRequests(description, prs);
 
 		// Step 4: Combine both analyses with weighting
-		const analysis = ai.combineAnalysis(commitAnalysis, prAnalysis, prs);
+		const analysis = await ai.combineAnalysis(commitAnalysis, prAnalysis, prs);
 
 		return {
 			status: analysis.status,
