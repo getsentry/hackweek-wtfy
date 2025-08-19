@@ -19,4 +19,5 @@ Sentry.init({
 
 process.on('sveltekit:shutdown', () => {
 	Sentry.close(2000);
+	process.exit(0);
 });

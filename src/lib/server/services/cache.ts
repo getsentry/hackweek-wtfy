@@ -101,7 +101,7 @@ export class CacheService {
 		try {
 			const result = await db.delete(cache).where(lt(cache.expiresAt, new Date()));
 
-			return { deletedCount: result.count || 0 };
+			return { deletedCount: result.rowCount || 0 };
 		} catch (error) {
 			console.error('Failed to cleanup cache:', error);
 			return { deletedCount: 0 };
