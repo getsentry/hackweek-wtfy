@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Search, LoaderCircle, TriangleAlert, CircleAlert, TestTube } from 'lucide-svelte';
+	import { Search, LoaderCircle, TriangleAlert, CircleAlert, TestTube, Zap, Clock, CheckCircle2 } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { dev } from '$app/environment';
-	import { Button, CollapsiblePanel, FormField, ResultsCard } from '$lib';
+	import { Button, CollapsiblePanel, FormField, ResultsCard, SkeletonLoader, AnalysisProgress, ErrorCard } from '$lib';
 	import type { ActionData } from './$types';
 
 	let { form }: { form: ActionData } = $props();
@@ -12,10 +12,20 @@
 	let version = $state('');
 	let description = $state('');
 	let isLoading = $state(false);
+	let analysisStep = $state(0);
 	
 	// Collapsible panel state
 	let isWarningExpanded = $state(false);
 	let isProTipsExpanded = $state(false);
+
+	// Analysis steps for progress indicator
+	const analysisSteps = [
+		{ title: 'Extracting Keywords', description: 'AI analyzing your issue description for search terms' },
+		{ title: 'Searching Commits', description: 'Looking through repository history for relevant changes' },
+		{ title: 'Analyzing Commits', description: 'AI evaluating commit messages for potential fixes' },
+		{ title: 'Fetching PR Details', description: 'Getting detailed information about relevant pull requests' },
+		{ title: 'Final Analysis', description: 'Combining all findings to determine if issue was fixed' }
+	];
 
 	// Get result and error from form action
 	const result = $derived(form?.success ? form.result : null);
@@ -60,6 +70,7 @@
 		sdk = '';
 		version = '';
 		description = '';
+		analysisStep = 0;
 		// Clear the form result by navigating to the same page
 		window.location.href = window.location.pathname;
 	}
@@ -69,18 +80,56 @@
 		version = '7.48.0';
 		description = 'My Web vital measurements are very inaccurate and differ a lot from the official web vitals library measurements as well as from the chrome dev tool vitals for the same pageload. Is there an SDK bug?';
 	}
+
+	function retryAnalysis() {
+		// Reset form to retry the same analysis
+		analysisStep = 0;
+		window.location.href = window.location.pathname;
+	}
+
+	// Simulate progress steps during loading (for better UX)
+	$effect(() => {
+		if (isLoading && analysisStep < analysisSteps.length - 1) {
+			const interval = setInterval(() => {
+				if (analysisStep < analysisSteps.length - 1) {
+					analysisStep++;
+				} else {
+					clearInterval(interval);
+				}
+			}, 2500); // Progress every 2.5 seconds
+
+			return () => clearInterval(interval);
+		}
+	});
 </script>
 
 <div class="max-w-4xl mx-auto">
 	<!-- Hero Section -->
-	<div class="text-center mb-12">
-		<h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-			Was It Fixed Yet?
-		</h1>
-		<p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+	<div class="text-center mb-12 animate-in fade-in-0 slide-in-from-top-4 duration-700">
+		<div class="flex items-center justify-center mb-4">
+			<Zap class="h-10 w-10 text-indigo-600 dark:text-indigo-400 mr-3" />
+			<h1 class="text-4xl font-bold text-gray-900 dark:text-white">
+				Was It Fixed Yet?
+			</h1>
+		</div>
+		<p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
 			Tired of debugging issues that might have been fixed in newer SDK versions? 
 			Let our AI dig through changelogs and PRs so you don't have to.
 		</p>
+		<div class="mt-6 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm text-gray-500 dark:text-gray-400">
+			<div class="flex items-center bg-green-50 dark:bg-green-900/20 px-3 py-1.5 rounded-full">
+				<CheckCircle2 class="h-4 w-4 mr-1 text-green-500" />
+				AI-Powered Analysis
+			</div>
+			<div class="flex items-center bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 rounded-full">
+				<Clock class="h-4 w-4 mr-1 text-blue-500" />
+				~10 Second Results
+			</div>
+			<div class="flex items-center bg-yellow-50 dark:bg-yellow-900/20 px-3 py-1.5 rounded-full">
+				<Zap class="h-4 w-4 mr-1 text-yellow-500" />
+				Real GitHub Data
+			</div>
+		</div>
 	</div>
 
 	<!-- Privacy Warning Panel -->
@@ -105,7 +154,7 @@
 	</CollapsiblePanel>
 
 	<!-- Development Tools (only visible in dev mode) -->
-	{#if true}
+	{#if dev}
 		<div class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center">
@@ -126,12 +175,35 @@
 	{/if}
 
 	<!-- Main Form Card -->
-	<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8">
+	<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 mb-8 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 delay-200 relative overflow-hidden">
+		<!-- Loading Overlay -->
+		{#if isLoading}
+			<div class="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm z-10 flex items-center justify-center">
+				<div class="text-center">
+					<LoaderCircle class="h-8 w-8 text-indigo-600 dark:text-indigo-400 animate-spin mx-auto mb-2" />
+					<p class="text-sm text-gray-600 dark:text-gray-400">
+						{analysisSteps[analysisStep]?.title || 'Analyzing...'}
+					</p>
+				</div>
+			</div>
+		{/if}
+
+		<div class="mb-6 border-l-4 border-indigo-500 pl-4">
+			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+				Analyze Your Issue
+			</h2>
+			<p class="text-sm text-gray-600 dark:text-gray-400">
+				Tell us about your issue and we'll check if it's been fixed in newer SDK versions.
+			</p>
+		</div>
+
 		<form method="POST" use:enhance={() => {
 			isLoading = true;
+			analysisStep = 0;
 			return async ({ update }) => {
 				await update();
 				isLoading = false;
+				analysisStep = 0;
 			};
 		}} class="space-y-6">
 			<!-- SDK Selection -->
@@ -175,69 +247,111 @@
 			/>
 
 			<!-- Submit Button -->
-			<div class="flex gap-4">
-				<Button
-					type="submit"
-					variant="primary"
-					disabled={isLoading || !isFormValid}
-					icon={isLoading ? LoaderCircle : Search}
-				>
-					{isLoading ? 'Analyzing...' : 'Check If Fixed'}
-				</Button>
-				
-				{#if result}
+			<div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 -mx-2">
+				<div class="flex flex-col sm:flex-row gap-4">
 					<Button
-						type="button"
-						variant="secondary"
-						onclick={resetForm}
+						type="submit"
+						variant="primary"
+						disabled={isLoading || !isFormValid}
+						icon={isLoading ? LoaderCircle : Search}
+						class="flex-1 sm:flex-none justify-center py-3 px-8 text-base font-medium shadow-lg hover:shadow-xl transition-shadow"
 					>
-						New Analysis
+						{isLoading ? 'Analyzing Your Issue...' : 'Check If Fixed'}
 					</Button>
+					
+					{#if result}
+						<Button
+							type="button"
+							variant="secondary"
+							onclick={resetForm}
+							class="flex-1 sm:flex-none justify-center"
+						>
+							New Analysis
+						</Button>
+					{/if}
+				</div>
+				
+				{#if !isFormValid && !isLoading}
+					<div class="mt-3 flex items-center justify-center">
+						<p class="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700">
+							Please fill out all fields. The description must be at least 10 characters long.
+						</p>
+					</div>
+				{:else if isFormValid && !isLoading && !result}
+					<div class="mt-3 flex items-center justify-center">
+						<p class="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full border border-green-200 dark:border-green-700">
+							Ready to analyze! Click the button above.
+						</p>
+					</div>
 				{/if}
 			</div>
-			
-			{#if !isFormValid && !isLoading}
-				<p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-					Please fill out all fields. The description must be at least 10 characters long.
-				</p>
-			{/if}
 		</form>
 	</div>
 
+	<!-- Analysis Progress (shown during loading) -->
+	{#if isLoading}
+		<div class="mb-8 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+			<AnalysisProgress currentStep={analysisStep} steps={analysisSteps} />
+		</div>
+	{/if}
+
 	<!-- Error Display -->
 	{#if error}
-		<div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 mb-6">
-			<div class="flex">
-				<CircleAlert class="h-5 w-5 text-red-400" />
-				<div class="ml-3">
-					<h3 class="text-sm font-medium text-red-800 dark:text-red-200">
-						Analysis Error
-					</h3>
-					<p class="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
-				</div>
-			</div>
+		<div class="mb-6">
+			<ErrorCard 
+				title="Analysis Failed" 
+				message={error} 
+				type="error"
+				canRetry={true}
+				onRetry={retryAnalysis}
+				helpLink={{
+					text: "Report Issue",
+					url: "https://github.com/getsentry/wtfy/issues"
+				}}
+			/>
 		</div>
 	{/if}
 
 	<!-- Results Display -->
 	{#if result}
-		<ResultsCard {result} />
+		<div class="mb-8">
+			<ResultsCard {result} />
+		</div>
 	{/if}
 
 	<!-- Tips Section -->
-	<CollapsiblePanel
-		title="💡 Pro Tips for Better Results"
-		variant="info"
-		bind:isExpanded={isProTipsExpanded}
-		class="mt-12"
-	>
-		{#snippet children()}
-			<ul class="space-y-2 text-sm text-indigo-800 dark:text-indigo-300">
-				<li>• Include specific error messages or stack traces when possible</li>
-				<li>• Mention the platform/environment (Node.js, browser, React Native, etc.)</li>
-				<li>• Describe what you expected vs what actually happened</li>
-				<li>• If it's a performance issue, include metrics or specifics</li>
-			</ul>
-		{/snippet}
-	</CollapsiblePanel>
+	<div class="animate-in fade-in-0 slide-in-from-bottom-2 duration-700 delay-500">
+		<CollapsiblePanel
+			title="💡 Pro Tips for Better Results"
+			variant="info"
+			bind:isExpanded={isProTipsExpanded}
+			class="mt-12"
+		>
+			{#snippet children()}
+				<div class="grid md:grid-cols-2 gap-4">
+					<div>
+						<h4 class="font-medium text-indigo-900 dark:text-indigo-200 mb-2">📝 Description Best Practices</h4>
+						<ul class="space-y-1 text-sm text-indigo-800 dark:text-indigo-300">
+							<li>• Include specific error messages or stack traces</li>
+							<li>• Mention the platform/environment (Node.js, browser, etc.)</li>
+							<li>• Describe expected vs actual behavior</li>
+						</ul>
+					</div>
+					<div>
+						<h4 class="font-medium text-indigo-900 dark:text-indigo-200 mb-2">🔍 What We Look For</h4>
+						<ul class="space-y-1 text-sm text-indigo-800 dark:text-indigo-300">
+							<li>• Bug fixes in commit messages</li>
+							<li>• Performance improvements and optimizations</li>
+							<li>• API changes that might resolve your issue</li>
+						</ul>
+					</div>
+				</div>
+				<div class="mt-4 p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+					<p class="text-sm text-indigo-800 dark:text-indigo-300">
+						💡 <strong>Pro tip:</strong> The more specific your description, the better our AI can match it against fixes in the codebase.
+					</p>
+				</div>
+			{/snippet}
+		</CollapsiblePanel>
+	</div>
 </div>
