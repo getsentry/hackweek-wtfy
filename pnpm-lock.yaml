@@ -15,8 +15,8 @@ importers:
         specifier: 10.5.0
         version: 10.5.0
       '@sentry/sveltekit':
-        specifier: file:.yalc/@sentry/sveltekit
-        version: file:.yalc/@sentry/sveltekit(@sveltejs/kit@2.31.1(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@6.1.2(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1))
+        specifier: file:./sentry-sveltekit-10.5.0.tgz
+        version: file:sentry-sveltekit-10.5.0.tgz(@sveltejs/kit@2.31.1(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@6.1.2(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1))
       '@sveltejs/adapter-node':
         specifier: ^5.3.1
         version: 5.3.1(@sveltejs/kit@2.31.1(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@6.1.2(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))
@@ -1134,8 +1134,9 @@ packages:
     peerDependencies:
       svelte: 3.x || 4.x || 5.x
 
-  '@sentry/sveltekit@file:.yalc/@sentry/sveltekit':
-    resolution: {directory: .yalc/@sentry/sveltekit, type: directory}
+  '@sentry/sveltekit@file:sentry-sveltekit-10.5.0.tgz':
+    resolution: {integrity: sha512-Xu5d+sx+KhJE+I/xmFEX4VZ78UTF9KAg10+39tUjBEYZwmkEYcGjVXueUam4nOpUN+86nzL3B9DfZMKuFRwjaw==, tarball: file:sentry-sveltekit-10.5.0.tgz}
+    version: 10.5.0
     engines: {node: '>=18'}
     peerDependencies:
       '@sveltejs/kit': 2.x
@@ -3951,7 +3952,7 @@ snapshots:
       magic-string: 0.30.17
       svelte: 5.38.1
 
-  '@sentry/sveltekit@file:.yalc/@sentry/sveltekit(@sveltejs/kit@2.31.1(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@6.1.2(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1))':
+  '@sentry/sveltekit@file:sentry-sveltekit-10.5.0.tgz(@sveltejs/kit@2.31.1(@opentelemetry/api@1.9.0)(@sveltejs/vite-plugin-svelte@6.1.2(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1)))(svelte@5.38.1)(vite@7.1.2(@types/node@24.3.0)(jiti@2.5.1)(lightningcss@1.30.1))':
     dependencies:
       '@babel/parser': 7.26.9
       '@sentry/cloudflare': 10.5.0
