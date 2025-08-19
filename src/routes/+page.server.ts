@@ -36,7 +36,7 @@ export const actions: Actions = {
 			}
 
 			const result = await apiResponse.json();
-			return { success: true, result };
+			return { success: true, result, requestId: result.requestId };
 		} catch (err) {
 			console.error('Form action failed:', err);
 			return fail(500, {

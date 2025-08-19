@@ -31,17 +31,43 @@ export const cache = pgTable('cache', {
 	expiresAt: timestamp('expires_at').notNull()
 });
 
+// Progress table - tracks real-time analysis progress
+export const progress = pgTable('progress', {
+	id: serial('id').primaryKey(),
+	requestId: integer('request_id')
+		.references(() => requests.id)
+		.notNull(),
+	currentStep: integer('current_step').notNull().default(0),
+	totalSteps: integer('total_steps').notNull().default(5),
+	stepTitle: text('step_title').notNull().default('Starting analysis...'),
+	stepDescription: text('step_description'),
+	isCompleted: integer('is_completed').notNull().default(0), // 0 = false, 1 = true (SQLite compatibility)
+	error: text('error'), // Store any error that occurred
+	updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
 // Relations
 export const requestsRelations = relations(requests, ({ one }) => ({
 	result: one(results, {
 		fields: [requests.id],
 		references: [results.requestId]
+	}),
+	progress: one(progress, {
+		fields: [requests.id],
+		references: [progress.requestId]
 	})
 }));
 
 export const resultsRelations = relations(results, ({ one }) => ({
 	request: one(requests, {
 		fields: [results.requestId],
+		references: [requests.id]
+	})
+}));
+
+export const progressRelations = relations(progress, ({ one }) => ({
+	request: one(requests, {
+		fields: [progress.requestId],
 		references: [requests.id]
 	})
 }));
@@ -53,3 +79,5 @@ export type Result = typeof results.$inferSelect;
 export type NewResult = typeof results.$inferInsert;
 export type Cache = typeof cache.$inferSelect;
 export type NewCache = typeof cache.$inferInsert;
+export type Progress = typeof progress.$inferSelect;
+export type NewProgress = typeof progress.$inferInsert;

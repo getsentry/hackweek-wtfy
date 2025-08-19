@@ -8,6 +8,7 @@ import { AIAnalyzer } from '$lib/server/services/ai-analyzer.js';
 import { CacheService, CACHE_NAMESPACES, CACHE_TTL } from '$lib/server/services/cache.js';
 import { analysisRateLimiter } from '$lib/server/services/rate-limiter.js';
 import { getRepoForSdk } from '$lib/utils/sdk-mappings.js';
+import { ProgressTracker, ANALYSIS_STEPS } from '$lib/server/services/progress-tracker.js';
 import type { PullRequest, GitHubPullRequest } from '$lib/types.js';
 
 // Request schema validation
@@ -77,7 +78,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		console.log({ cachedResult });
 
 		if (cachedResult) {
-			return new Response(JSON.stringify(cachedResult), {
+			const cachedResponse = {
+				...(cachedResult as any),
+				requestId: null, // No request ID for cached results
+				fromCache: true
+			};
+
+			return new Response(JSON.stringify(cachedResponse), {
 				status: 200,
 				headers: {
 					'Content-Type': 'application/json',
@@ -101,16 +108,33 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		const requestId = requestResult[0].id;
 
-		// Perform analysis
-		const analysisResult = await performAnalysis(
-			githubService,
-			aiAnalyzer,
-			cache,
-			repo,
-			validatedData.sdk,
-			validatedData.version,
-			validatedData.description
-		);
+		// Initialize progress tracking
+		const progressTracker = new ProgressTracker(requestId);
+		await progressTracker.initialize();
+
+		// Perform analysis with progress tracking
+		let analysisResult;
+		try {
+			analysisResult = await performAnalysis(
+				githubService,
+				aiAnalyzer,
+				cache,
+				repo,
+				validatedData.sdk,
+				validatedData.version,
+				validatedData.description,
+				progressTracker
+			);
+
+			// Mark as completed
+			await progressTracker.complete();
+		} catch (analysisError) {
+			// Mark as failed
+			await progressTracker.fail(
+				analysisError instanceof Error ? analysisError.message : 'Unknown error'
+			);
+			throw analysisError;
+		}
 
 		// Store result in database
 		await db.insert(results).values({
@@ -129,8 +153,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			CACHE_TTL.OPENAI_ANALYSIS
 		);
 
-		// Return response with rate limit headers
-		return new Response(JSON.stringify(analysisResult), {
+		// Return response with rate limit headers and request ID for progress tracking
+		const responseData = {
+			...analysisResult,
+			requestId: requestId // Include request ID for progress polling
+		};
+
+		return new Response(JSON.stringify(responseData), {
 			status: 200,
 			headers: {
 				'Content-Type': 'application/json',
@@ -165,7 +194,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 };
 
 /**
- * Perform the complete analysis workflow
+ * Perform the complete analysis workflow with real-time progress tracking
  */
 async function performAnalysis(
 	github: GitHubService,
@@ -174,10 +203,21 @@ async function performAnalysis(
 	repo: string,
 	sdk: string,
 	version: string,
-	description: string
+	description: string,
+	progressTracker: ProgressTracker
 ) {
 	try {
-		// Step 1: Get all tags/versions for the repository
+		// Step 1: Extract keywords for targeted searching
+		await progressTracker.updateStep(
+			ANALYSIS_STEPS.EXTRACTING_KEYWORDS.step,
+			ANALYSIS_STEPS.EXTRACTING_KEYWORDS.title,
+			ANALYSIS_STEPS.EXTRACTING_KEYWORDS.description
+		);
+
+		const commitSearchKeywords = await ai.findKeywords(description);
+		console.log({ commitSearchKeywords });
+
+		// Get all tags/versions for the repository
 		let tags = null;
 		console.log({ tags });
 		if (!tags) {
@@ -204,12 +244,16 @@ async function performAnalysis(
 			};
 		}
 
+		// Step 2: Search for relevant commits
+		await progressTracker.updateStep(
+			ANALYSIS_STEPS.FETCHING_COMMITS.step,
+			ANALYSIS_STEPS.FETCHING_COMMITS.title,
+			`Searching for commits containing: ${commitSearchKeywords.join(', ')}`
+		);
+
 		// Get ALL commits between user's version and the latest version
 		const commitsKey = { repo, from: version };
 		let allCommits = undefined;
-
-		const commitSearchKeywords = await ai.findKeywords(description);
-		console.log({ commitSearchKeywords });
 
 		if (!allCommits) {
 			// Get commits from user's version to the latest (most recent version or HEAD)
@@ -230,6 +274,13 @@ async function performAnalysis(
 
 		console.log(`Found ${allCommits.length} commits to analyze:`);
 		// console.log(allCommits);
+
+		// Step 3: AI analysis of commit messages
+		await progressTracker.updateStep(
+			ANALYSIS_STEPS.ANALYZING_COMMITS.step,
+			ANALYSIS_STEPS.ANALYZING_COMMITS.title,
+			`Analyzing ${allCommits.length} commits with AI`
+		);
 
 		// PASS 1: AI analysis of ALL commit messages to find potentially relevant ones
 		const commitAnalysis = await ai.analyzeCommits(description, allCommits);
@@ -257,6 +308,13 @@ async function performAnalysis(
 
 		console.log(`Found ${prNumbers.length} PRs to analyze from relevant commits`);
 
+		// Step 4: Fetch PR details for relevant PRs
+		await progressTracker.updateStep(
+			ANALYSIS_STEPS.FETCHING_PRS.step,
+			ANALYSIS_STEPS.FETCHING_PRS.title,
+			`Fetching details for ${prNumbers.length} pull requests`
+		);
+
 		// PASS 2: Fetch PR details for relevant PRs only (smart API usage)
 		const prs: PullRequest[] = [];
 		for (const prNumber of prNumbers) {
@@ -281,10 +339,17 @@ async function performAnalysis(
 			}
 		}
 
+		// Step 5: Final AI analysis and combination
+		await progressTracker.updateStep(
+			ANALYSIS_STEPS.FINAL_ANALYSIS.step,
+			ANALYSIS_STEPS.FINAL_ANALYSIS.title,
+			`Analyzing ${prs.length} PR descriptions and combining results`
+		);
+
 		// PASS 3: AI analysis of fetched PRs
 		const prAnalysis = await ai.analyzePullRequests(description, prs);
 
-		// Step 4: Combine both analyses with weighting
+		// Final step: Combine both analyses with weighting
 		const analysis = await ai.combineAnalysis(commitAnalysis, prAnalysis, prs);
 
 		return {

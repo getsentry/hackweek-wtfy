@@ -13,6 +13,7 @@
 	let description = $state('');
 	let isLoading = $state(false);
 	let analysisStep = $state(0);
+	let currentRequestId = $state<number | null>(null);
 	
 	// Collapsible panel state
 	let isWarningExpanded = $state(false);
@@ -31,6 +32,14 @@
 	// Get result and error from form action
 	const result = $derived(form?.success ? form.result : null);
 	const error = $derived(form?.error || null);
+	
+	// Start progress polling when we get a request ID
+	$effect(() => {
+		if (form?.success && form.requestId && !result?.fromCache) {
+			currentRequestId = form.requestId;
+			startProgressPolling(form.requestId);
+		}
+	});
 
 	// Client-side validation
 	const isValidSdk = $derived(sdk.trim().length > 0);
@@ -72,6 +81,7 @@
 		version = '';
 		description = '';
 		analysisStep = 0;
+		currentRequestId = null;
 		// Clear the form result by navigating to the same page to reset form action state
 		window.location.href = window.location.pathname;
 	}
@@ -86,29 +96,58 @@
 		sdk = historySdk;
 		version = historyVersion;
 		description = historyDescription;
+		analysisStep = 0;
+		currentRequestId = null;
 		// Don't reload - just populate the form
 	}
 
 	function retryAnalysis() {
 		// Reset form to retry the same analysis
 		analysisStep = 0;
+		currentRequestId = null;
 		window.location.href = window.location.pathname;
 	}
 
-	// Simulate progress steps during loading (for better UX)
-	$effect(() => {
-		if (isLoading && analysisStep < analysisSteps.length - 1) {
-			const interval = setInterval(() => {
-				if (analysisStep < analysisSteps.length - 1) {
-					analysisStep++;
-				} else {
-					clearInterval(interval);
+	// Real-time progress polling
+	async function startProgressPolling(requestId: number) {
+		if (!requestId) return;
+		
+		console.log(`Starting progress polling for request ${requestId}`);
+		
+		const pollInterval = setInterval(async () => {
+			try {
+				const response = await fetch(`/api/progress/${requestId}`);
+				if (response.ok) {
+					const progressData = await response.json();
+					console.log(`Progress update:`, progressData);
+					analysisStep = progressData.currentStep;
+					
+					// Update step description if available
+					if (progressData.stepDescription) {
+						const stepIndex = progressData.currentStep - 1;
+						if (stepIndex >= 0 && stepIndex < analysisSteps.length) {
+							analysisSteps[stepIndex].description = progressData.stepDescription;
+						}
+					}
+					
+					// Stop polling when completed or error
+					if (progressData.isCompleted || progressData.error) {
+						clearInterval(pollInterval);
+						console.log(`Progress polling completed for request ${requestId}`);
+					}
 				}
-			}, 2500); // Progress every 2.5 seconds
+			} catch (err) {
+				console.error('Progress polling error:', err);
+				// Continue polling despite errors
+			}
+		}, 2000); // Poll every 2 seconds
 
-			return () => clearInterval(interval);
-		}
-	});
+		// Cleanup after 60 seconds to prevent runaway polling
+		setTimeout(() => {
+			clearInterval(pollInterval);
+			console.log(`Progress polling timeout for request ${requestId}`);
+		}, 60000);
+	}
 </script>
 
 <div class="w-full">
@@ -200,10 +239,11 @@
 					<form method="POST" use:enhance={() => {
 						isLoading = true;
 						analysisStep = 0;
+						currentRequestId = null;
 						return async ({ update }) => {
 							await update();
 							isLoading = false;
-							analysisStep = 0;
+							// Don't reset analysisStep here - let progress polling handle it
 						};
 					}} class="space-y-6">
 						<!-- SDK Selection -->
