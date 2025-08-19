@@ -461,9 +461,9 @@ Focus on the titles and descriptions to determine relevance.`;
 				return `Found commits that likely fix this issue. ${minimalAnalysisReasoning}`;
 			}
 		} else if (status === 'not_fixed') {
-			return `No clear fixes found for this issue in recent commits or pull requests. The issue may still exist.`;
+			return `No clear fixes found for this issue in recent commits or pull requests. The issue may still exist. Consider checking the [latest releases](https://github.com/getsentry/sentry-javascript/releases) manually.`;
 		} else {
-			return `Unable to determine if this issue has been fixed. ${minimalAnalysisReasoning}`;
+			return `Unable to determine if this issue has been fixed. ${minimalAnalysisReasoning} You might want to [search the repository](https://github.com/getsentry/sentry-javascript/issues) for similar issues.`;
 		}
 	}
 }

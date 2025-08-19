@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CircleAlert, CheckCircle } from 'lucide-svelte';
+	import { parseMarkdownLinks } from '$lib/utils/markdown';
 
 	interface PullRequest {
 		title: string;
@@ -59,7 +60,7 @@
 			</div>
 
 			{#if result.summary}
-				<p class="text-gray-600 dark:text-gray-300 mb-4">{result.summary}</p>
+				<p class="text-gray-600 dark:text-gray-300 mb-4">{@html parseMarkdownLinks(result.summary)}</p>
 			{/if}
 
 			{#if result.prs && result.prs.length > 0}

@@ -290,11 +290,22 @@ async function performAnalysis(
 		return {
 			status: analysis.status,
 			confidence: analysis.confidence,
-			summary: analysis.summary,
+			summary: addPrLinksToSummary(analysis.summary, analysis.relevantPrs),
 			prs: analysis.relevantPrs
 		};
 	} catch (err) {
 		console.error('Analysis workflow failed:', err);
 		throw err;
 	}
+}
+
+function addPrLinksToSummary(summary: string, prs: PullRequest[]) {
+	return summary.replaceAll(/#\d+/g, (match) => {
+		const prNumber = match.slice(1);
+		const pr = prs.find((pr) => pr.number === parseInt(prNumber));
+		if (pr) {
+			return `[#${prNumber}](${pr.url})`;
+		}
+		return match;
+	});
 }
