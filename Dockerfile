@@ -9,8 +9,8 @@ RUN npm install -g pnpm
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copy package files and Sentry tarball
+COPY package.json pnpm-lock.yaml sentry-sveltekit-10.5.0.tgz ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --prod=false
@@ -30,8 +30,8 @@ RUN npm install -g pnpm
 # Create app directory
 WORKDIR /app
 
-# Copy package files for production dependencies
-COPY package.json pnpm-lock.yaml ./
+# Copy package files and Sentry tarball for production dependencies
+COPY package.json pnpm-lock.yaml sentry-sveltekit-10.5.0.tgz ./
 
 # Install only production dependencies
 RUN pnpm install --frozen-lockfile --prod

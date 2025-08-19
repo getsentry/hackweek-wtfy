@@ -15,6 +15,9 @@ build
 .git
 .gitignore
 
+# Keep Sentry tarball for dependencies
+!sentry-sveltekit-*.tgz
+
 # Development tools
 .vscode
 .cursor

@@ -37,12 +37,19 @@ docker-compose up
 ### 3. **Production Deployment**
 
 ```bash
-# Build and run production
-docker-compose -f docker-compose.yml up --build
+# Recommended: Use docker-compose (reads .env automatically)
+docker-compose up --build
 
-# Or build manually
+# Or build manually with explicit env vars
 docker build -t wtfy .
 docker run -p 3000:3000 --env-file .env wtfy
+
+# Or pass env vars individually
+docker run -p 3000:3000 \
+  -e DATABASE_URL="your-database-url" \
+  -e GITHUB_TOKEN="your-token" \
+  -e OPENAI_API_KEY="your-key" \
+  wtfy
 ```
 
 ## Production Deployment Options
@@ -82,14 +89,50 @@ vercel --prod
 ### **Option 3: Self-Hosted**
 
 ```bash
-# Any Docker-compatible hosting
+# Build the image
+docker build -t wtfy .
+
+# Run with environment file
+docker run -d \
+  --name wtfy \
+  -p 3000:3000 \
+  --env-file .env \
+  wtfy
+
+# Or run with explicit environment variables
 docker run -d \
   --name wtfy \
   -p 3000:3000 \
   -e DATABASE_URL="your-postgres-url" \
   -e GITHUB_TOKEN="your-token" \
   -e OPENAI_API_KEY="your-key" \
-  wtfy:latest
+  wtfy
+```
+
+## Troubleshooting
+
+### "DATABASE_URL environment variable is required"
+
+Make sure you're passing environment variables correctly:
+
+```bash
+# ✅ Correct: Use docker-compose (reads .env automatically)
+docker-compose up
+
+# ✅ Correct: Use --env-file flag
+docker run -p 3000:3000 --env-file .env wtfy
+
+# ❌ Wrong: Missing environment variables
+docker run -p 3000:3000 wtfy
+```
+
+### Check your .env file format:
+
+```bash
+# Ensure no quotes around values in .env file
+DATABASE_URL=postgresql://user:pass@host:5432/wtfy
+GITHUB_TOKEN=ghp_your_token_here
+OPENAI_API_KEY=sk_your_key_here
 ```
 
 ## Health Checks
