@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+.pnpm
+
+# Development files
+.env
+.env.*
+!.env.example
+
+# Build outputs
+.svelte-kit
+build
+
+# Version control
+.git
+.gitignore
+
+# Development tools
+.vscode
+.cursor
+
+# Documentation
+README.md
+implementation.md
+
+# Test files
+tests
+e2e
+**/*.test.ts
+**/*.spec.ts
+playwright-report
+test-results
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Development artifacts
+.yalc
+yalc.lock
+
+# Temporary files
+tmp
+temp
