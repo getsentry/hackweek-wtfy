@@ -6,6 +6,8 @@ export const GET: RequestHandler = async ({ url }) => {
 	// Build the callback URL
 	const redirectUri = `${url.origin}/auth/callback`;
 
+	console.log('xx', { redirectUri });
+
 	// Generate GitHub OAuth URL
 	const oauthUrl = getGitHubOAuthUrl(redirectUri);
 
