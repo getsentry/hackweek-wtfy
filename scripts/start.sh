@@ -47,7 +47,7 @@ cd /app
 
 # Push schema changes to database (this reads schema.ts directly)
 echo "📋 Applying schema changes..."
-if ! pnpm run db:push; then
+if ! pnpm run db:push --force; then
     echo "❌ Database migration failed! Check schema file and database connection."
     echo "📂 Checking if schema file exists..."
     ls -la src/lib/server/db/schema.ts 2>/dev/null || echo "❌ Schema file not found!"
