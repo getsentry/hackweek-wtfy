@@ -4,13 +4,11 @@
 		LoaderCircle,
 		TriangleAlert,
 		CircleAlert,
-		TestTube,
 		Zap,
 		Clock,
 		CheckCircle2
 	} from 'lucide-svelte';
 	import { enhance } from '$app/forms';
-	import { dev } from '$app/environment';
 	import { v4 as uuidv4 } from 'uuid';
 	import {
 		Button,
@@ -120,13 +118,6 @@
 		currentRequestId = null;
 		// Clear the form result by navigating to the same page to reset form action state
 		window.location.href = window.location.pathname;
-	}
-
-	function populateTestData() {
-		sdk = 'sentry-javascript';
-		version = '7.48.0';
-		description =
-			'My Web vital measurements are very inaccurate and differ a lot from the official web vitals library measurements as well as from the chrome dev tool vitals for the same pageload. Is there an SDK bug?';
 	}
 
 	function populateFromHistory(
@@ -251,31 +242,6 @@
 			</ul>
 		{/snippet}
 	</CollapsiblePanel>
-
-	<!-- Development Tools -->
-	{#if true}
-		<div
-			class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20"
-		>
-			<div class="flex items-center justify-between">
-				<div class="flex items-center">
-					<TestTube class="mr-2 h-4 w-4 text-amber-600 dark:text-amber-400" />
-					<span class="text-sm font-medium text-amber-800 dark:text-amber-200"
-						>Development Mode</span
-					>
-				</div>
-				<Button
-					type="button"
-					variant="secondary"
-					size="sm"
-					onclick={populateTestData}
-					class="border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200 dark:border-amber-700 dark:bg-amber-900/50 dark:text-amber-200 dark:hover:bg-amber-900/70"
-				>
-					Fill Test Data
-				</Button>
-			</div>
-		</div>
-	{/if}
 
 	<!-- Main Content Layout (hidden during analysis) -->
 	{#if !isLoading}

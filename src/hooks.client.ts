@@ -20,6 +20,8 @@ Sentry.init({
 
 	environment: dev ? 'development' : 'production',
 
+	sendDefaultPii: true,
+
 	// If you don't want to use Session Replay, just remove the line below:
 	integrations: [replayIntegration()]
 });

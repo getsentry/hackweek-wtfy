@@ -10,7 +10,6 @@ import { analysisRateLimiter } from '$lib/server/services/rate-limiter.js';
 import { getRepoForSdk } from '$lib/utils/sdk-mappings.js';
 import { ProgressTracker, ANALYSIS_STEPS } from '$lib/server/services/progress-tracker.js';
 import type { PullRequest, GitHubPullRequest } from '$lib/types.js';
-import * as Sentry from '@sentry/sveltekit';
 // Request schema validation
 const AnalyzeRequestSchema = z.object({
 	requestId: z.string().min(1, 'Request ID is required'),
