@@ -221,7 +221,7 @@
 									onPopulateForm(item.sdk, item.version, item.description);
 									// Trigger form submission after a brief delay to allow form population
 									setTimeout(() => {
-										const form = document.querySelector('form');
+										const form = document.querySelector('#requestForm');
 										if (form) form.requestSubmit();
 									}, 100);
 								}}

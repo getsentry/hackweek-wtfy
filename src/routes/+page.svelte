@@ -330,6 +330,7 @@
 					</div>
 
 					<form
+						id="requestForm"
 						method="POST"
 						use:enhance={({ formData }) => {
 							// Generate request ID and start polling immediately
