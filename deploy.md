@@ -7,9 +7,6 @@
 Create a `.env` file:
 
 ```bash
-# Database (use your hosted PostgreSQL provider - Railway, Supabase, etc.)
-DATABASE_URL=postgresql://username:password@your-hosted-db:5432/wtfy
-
 # Required API Keys
 GITHUB_TOKEN=ghp_your_github_token_here
 OPENAI_API_KEY=sk_your_openai_key_here
@@ -22,6 +19,8 @@ JWT_SECRET=your_random_jwt_secret_string
 # Optional Configuration
 MAX_REQUESTS_PER_HOUR=100
 CACHE_TTL_HOURS=24
+
+# Note: DATABASE_URL is not needed - PostgreSQL is embedded in the container
 ```
 
 ### GitHub OAuth App Setup
@@ -39,14 +38,16 @@ Before deploying, you need to create a GitHub OAuth App:
 ### 2. **Local Development**
 
 ```bash
-# Set up your hosted database URL in .env
-DATABASE_URL=postgresql://user:pass@your-hosted-db:5432/wtfy
+# No database setup needed - PostgreSQL is embedded in the container
 
-# Run migrations against your hosted database
-pnpm run db:push
+# Start WTFY application with embedded database
+docker-compose up --build
 
-# Start WTFY application (connects to hosted database)
-docker-compose up
+# The container will:
+# 1. Initialize PostgreSQL automatically
+# 2. Create the wtfy database and user
+# 3. Run database migrations
+# 4. Start the WTFY application
 
 # Access WTFY at: http://localhost:3000
 ```
@@ -59,19 +60,26 @@ docker-compose up --build
 
 # Or build manually with build args (needed for Northflank/CI)
 docker build -t wtfy \
-  --build-arg DATABASE_URL="your-database-url" \
   --build-arg GITHUB_TOKEN="your-token" \
   --build-arg OPENAI_API_KEY="your-key" \
+  --build-arg GITHUB_CLIENT_ID="your-client-id" \
+  --build-arg GITHUB_CLIENT_SECRET="your-client-secret" \
+  --build-arg JWT_SECRET="your-jwt-secret" \
   .
 
-# Then run with runtime env vars
-docker run -p 3000:3000 --env-file .env wtfy
+# Then run with runtime env vars (database is embedded)
+docker run -p 3000:3000 \
+  -v wtfy_data:/var/lib/postgresql/data \
+  --env-file .env \
+  wtfy
 
 # Or build from .env file
 docker build -t wtfy \
-  --build-arg DATABASE_URL="$(grep DATABASE_URL .env | cut -d '=' -f2)" \
   --build-arg GITHUB_TOKEN="$(grep GITHUB_TOKEN .env | cut -d '=' -f2)" \
   --build-arg OPENAI_API_KEY="$(grep OPENAI_API_KEY .env | cut -d '=' -f2)" \
+  --build-arg GITHUB_CLIENT_ID="$(grep GITHUB_CLIENT_ID .env | cut -d '=' -f2)" \
+  --build-arg GITHUB_CLIENT_SECRET="$(grep GITHUB_CLIENT_SECRET .env | cut -d '=' -f2)" \
+  --build-arg JWT_SECRET="$(grep JWT_SECRET .env | cut -d '=' -f2)" \
   .
 ```
 
@@ -84,10 +92,7 @@ docker build -t wtfy \
 railway login
 railway new
 
-# Add PostgreSQL database
-railway add postgresql
-
-# Deploy the application
+# Deploy the application (no external database needed)
 railway deploy
 ```
 
@@ -95,9 +100,11 @@ Environment variables to set:
 
 - `GITHUB_TOKEN`
 - `OPENAI_API_KEY`
-- `DATABASE_URL` (auto-provided by Railway PostgreSQL)
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+- `JWT_SECRET`
 
-**Note**: Railway automatically provides the `DATABASE_URL` when you add PostgreSQL.
+**Note**: No database setup needed - PostgreSQL is embedded in the container with automatic initialization.
 
 ### **Option 2: Vercel + Supabase**
 
@@ -168,7 +175,6 @@ docker run -p 3000:3000 wtfy
 ### For Northflank Deployment:
 
 1. **Build Settings**: Add these as **build arguments** in Northflank:
-   - `DATABASE_URL` = your hosted database connection string
    - `GITHUB_TOKEN` = your GitHub token
    - `OPENAI_API_KEY` = your OpenAI key
    - `GITHUB_CLIENT_ID` = your GitHub OAuth app client ID

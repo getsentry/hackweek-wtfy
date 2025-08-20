@@ -1,0 +1,20 @@
+services:
+  # PostgreSQL for development
+  postgres-dev:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: wtfy_dev
+      POSTGRES_USER: wtfy
+      POSTGRES_PASSWORD: wtfy_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+
+networks:
+  default:
+    name: wtfy-dev-network

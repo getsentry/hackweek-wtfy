@@ -1,3 +1,4 @@
+import { dev } from '$app/environment';
 import * as Sentry from '@sentry/sveltekit';
 
 console.log('Initializing Sentry');
@@ -13,7 +14,8 @@ Sentry.init({
 			recordOutputs: true
 		})
 	],
-	sendDefaultPii: true
+	sendDefaultPii: true,
+	environment: dev ? 'development' : 'production'
 	// debug: true
 });
 
