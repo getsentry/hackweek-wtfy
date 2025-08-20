@@ -57,7 +57,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml sentry-sveltekit-10.5.0.tgz ./
 
 # Install only production dependencies
-RUN pnpm install --frozen-lockfile --prod
+RUN pnpm install --frozen-lockfile --prod=false
 
 # Copy built application from previous stage
 COPY --from=base /app/build ./build
