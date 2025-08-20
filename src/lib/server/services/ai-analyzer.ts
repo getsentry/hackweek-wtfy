@@ -2,7 +2,6 @@
 import OpenAI from 'openai';
 import type { AnalysisStatus, GitHubCommit, PullRequest } from '$lib/types';
 import * as Sentry from '@sentry/sveltekit';
-import * as SentryNode from '@sentry/node';
 export class AIAnalyzer {
 	private openai: OpenAI;
 
@@ -31,9 +30,11 @@ Here are some keyword classes you should not return:
 - bug, fix, feat, or any other kind of meta information about the issue
 - runtime information like server or client
 - behaviour like 'working', 'throws error', etc.
+- super general words in the sentry SDK context like: 'sdk', 'integration'
 
 Here are some keyword classes you should return:
 - the subject of the description, like 'web vitals', 'spans', 'performance', 'memory'
+- a specific integration like 'browserTracingIntegration', but in this case, omit 'integration' (so just 'browserTracing')
 
 Always return the list of keywords in a JSON array!`
 					},
@@ -44,7 +45,7 @@ Always return the list of keywords in a JSON array!`
 ${issueDescription}`
 					}
 				],
-				temperature: 0.3,
+				temperature: 0.5,
 				max_tokens: 400
 			});
 
@@ -144,7 +145,7 @@ ${issueDescription}`
 						content: prompt
 					}
 				],
-				temperature: 0.7,
+				temperature: 0.8,
 				max_tokens: 1500
 			});
 
@@ -213,7 +214,7 @@ ${issueDescription}`
 						content: prompt
 					}
 				],
-				temperature: 0.3,
+				temperature: 0.5,
 				max_tokens: 800
 			});
 

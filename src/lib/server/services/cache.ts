@@ -152,7 +152,7 @@ export class CacheService {
 
 // Pre-defined cache namespaces for type safety
 export const CACHE_NAMESPACES = {
-	GITHUB_TAGS: 'github:tags',
+	GITHUB_RELEASES: 'github:releases',
 	GITHUB_COMMITS: 'github:commits',
 	GITHUB_PRS: 'github:prs',
 	GITHUB_REPO_INFO: 'github:repo',
@@ -162,7 +162,7 @@ export const CACHE_NAMESPACES = {
 
 // Cache TTL configurations for different types of data
 export const CACHE_TTL = {
-	GITHUB_TAGS: 6 * 60 * 60 * 1000, // 6 hours (tags don't change often, but we fetch up to 1000 now)
+	GITHUB_RELEASES: 12 * 60 * 60 * 1000, // 12 hours (releases don't change often, but we fetch up to 1000 now)
 	GITHUB_COMMITS: 1 * 60 * 60 * 1000, // 1 hour (commits are immutable once created)
 	GITHUB_PRS: 30 * 60 * 1000, // 30 minutes (PRs can be updated)
 	OPENAI_ANALYSIS: 24 * 60 * 60 * 1000, // 24 hours (analysis shouldn't change much)

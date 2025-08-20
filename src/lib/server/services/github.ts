@@ -1,7 +1,8 @@
 // Simplified GitHub API service with better pagination
 import { Octokit } from '@octokit/rest';
 import * as Sentry from '@sentry/sveltekit';
-import type { GitHubCommit, GitHubPullRequest, GitHubTag } from '$lib/types';
+import type { GitHubCommit, GitHubPullRequest, GitHubRelease } from '$lib/types';
+import { SemVer, parse as semverParse } from 'semver';
 
 export class GitHubService {
 	private octokit: Octokit;
@@ -16,70 +17,15 @@ export class GitHubService {
 	}
 
 	/**
-	 * Get all tags/releases for a repository (up to 1000) sorted by creation date (newest first)
-	 */
-	async getTags(repo: string): Promise<GitHubTag[]> {
-		try {
-			const [owner, repoName] = repo.split('/');
-			const allTags: GitHubTag[] = [];
-			let page = 1;
-			const perPage = 100; // GitHub API maximum per page
-			const maxTags = 1000; // Reasonable limit to avoid excessive API calls
-
-			while (allTags.length < maxTags) {
-				const { data } = await this.octokit.repos.listTags({
-					owner,
-					repo: repoName,
-					per_page: perPage,
-					page
-				});
-
-				// No more tags available
-				if (data.length === 0) {
-					break;
-				}
-
-				const mappedTags = data.map((tag) => ({
-					name: tag.name,
-					commit: {
-						sha: tag.commit.sha
-					}
-				}));
-
-				allTags.push(...mappedTags);
-
-				// If we got less than perPage, we've reached the end
-				if (data.length < perPage) {
-					break;
-				}
-
-				page++;
-			}
-
-			console.log(`Fetched ${allTags.length} tags for ${repo}`);
-			return allTags;
-		} catch (error) {
-			console.error(`Failed to get tags for ${repo}:`, error);
-			Sentry.captureException(error);
-			throw new Error(
-				`Failed to fetch repository tags: ${error instanceof Error ? error.message : 'Unknown error'}`
-			);
-		}
-	}
-
-	/**
 	 * Get ALL commits between two versions using simple date-based approach
 	 */
 	async getCommitsBetweenVersions(
 		repo: string,
 		fromVersion: string,
-		toVersion: string,
 		commitSearchKeywords: string[]
 	): Promise<GitHubCommit[]> {
 		try {
-			console.log(
-				`Looking up ALL commits between versions ${fromVersion} and ${toVersion || 'HEAD'}`
-			);
+			console.log(`Looking up ALL commits between ${fromVersion} and HEAD`);
 			const [owner, repoName] = repo.split('/');
 
 			// Get the date of the fromVersion
@@ -88,10 +34,7 @@ export class GitHubService {
 			// Search for commits with keywords since that date
 			return this.searchCommitsWithKeywords(repo, commitSearchKeywords, fromDate);
 		} catch (error) {
-			console.error(
-				`Failed to get commits between ${fromVersion} and ${toVersion} for ${repo}:`,
-				error
-			);
+			console.error(`Failed to get commits between ${fromVersion} and HEAD for ${repo}:`, error);
 			Sentry.captureException(error);
 			return [];
 		}
@@ -285,32 +228,11 @@ export class GitHubService {
 	/**
 	 * Get version chronology by parsing semantic versions
 	 */
-	parseVersions(tags: GitHubTag[]): { version: string; sha: string }[] {
-		return tags
-			.map((tag) => ({
-				version: tag.name,
-				sha: tag.commit.sha
-			}))
-			.sort((a, b) => {
-				// Basic semantic version comparison
-				const aParts = a.version
-					.replace(/[^0-9.]/g, '')
-					.split('.')
-					.map(Number);
-				const bParts = b.version
-					.replace(/[^0-9.]/g, '')
-					.split('.')
-					.map(Number);
-
-				for (let i = 0; i < Math.max(aParts.length, bParts.length); i++) {
-					const aPart = aParts[i] || 0;
-					const bPart = bParts[i] || 0;
-					if (aPart !== bPart) {
-						return bPart - aPart; // Descending order (newest first)
-					}
-				}
-				return 0;
-			});
+	parseVersions(releases: GitHubRelease[]): SemVer[] {
+		return releases
+			.map((r) => semverParse(r.tag))
+			.filter((v) => !!v)
+			.sort((a, b) => a.compare(b));
 	}
 
 	/**
@@ -323,5 +245,60 @@ export class GitHubService {
 			limit: data.rate.limit,
 			resetTime: new Date(data.rate.reset * 1000)
 		};
+	}
+
+	async findAllReleases(repo: string): Promise<GitHubRelease[]> {
+		return await Sentry.startSpan({ name: 'findAllReleases', attributes: { repo } }, async () => {
+			const [owner, repoName] = repo.split('/');
+			const allReleases: GitHubRelease[] = [];
+			let page = 1;
+			const perPage = 100;
+
+			while (true) {
+				const { data } = await Sentry.startSpan(
+					{ name: 'listReleases', attributes: { page, perPage } },
+					() =>
+						this.octokit.repos.listReleases({
+							owner,
+							repo: repoName,
+							per_page: perPage,
+							page
+						})
+				);
+
+				if (data.length === 0) {
+					break;
+				}
+
+				allReleases.push(
+					...data.map((r) => ({
+						tag: r.tag_name,
+						name: r.name,
+						url: r.url,
+						body: r.body
+					}))
+				);
+
+				if (data.length < perPage) {
+					break;
+				}
+
+				page++;
+			}
+
+			return allReleases.sort((a, b) => {
+				const semverA = semverParse(a.tag);
+				const semverB = semverParse(b.tag);
+				if (!semverA || !semverB) {
+					return 0;
+				}
+				return semverB.compare(semverA);
+			});
+		});
+	}
+
+	findReleaseForPr(pr: GitHubPullRequest, releases: GitHubRelease[]): string | undefined | null {
+		const release = releases.find((r) => r.body?.includes(pr.number.toString()));
+		return release?.name;
 	}
 }

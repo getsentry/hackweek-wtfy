@@ -7,6 +7,7 @@
 		title: string;
 		url: string;
 		number: number;
+		releaseVersion?: string;
 	}
 
 	interface Result {
@@ -44,18 +45,20 @@
 	const IconComponent = config.icon;
 </script>
 
-<div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 animate-in fade-in-0 slide-in-from-bottom-4 duration-500 border border-gray-200 dark:border-gray-700">
+<div
+	class="animate-in fade-in-0 slide-in-from-bottom-4 rounded-lg border border-gray-200 bg-white p-6 shadow-lg duration-500 dark:border-gray-700 dark:bg-gray-800"
+>
 	<div class="flex items-start space-x-4">
 		<div class="flex-shrink-0">
 			<IconComponent class="h-8 w-8 {config.iconColor}" />
 		</div>
 		<div class="flex-1">
-			<h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+			<h2 class="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
 				{config.title}
 			</h2>
-			
+
 			<div class="mb-6">
-				<div class="flex items-center justify-between mb-2">
+				<div class="mb-2 flex items-center justify-between">
 					<span class="text-sm font-medium text-gray-700 dark:text-gray-300">
 						Confidence Level
 					</span>
@@ -65,16 +68,20 @@
 			</div>
 
 			{#if result.summary}
-				<p class="text-gray-600 dark:text-gray-300 mb-4">{@html parseMarkdownLinks(result.summary)}</p>
+				<p class="mb-4 text-gray-600 dark:text-gray-300">
+					{@html parseMarkdownLinks(result.summary)}
+				</p>
 			{/if}
 
 			{#if result.prs && result.prs.length > 0}
-				<div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-					<div class="flex items-center justify-between mb-4">
+				<div class="border-t border-gray-200 pt-6 dark:border-gray-700">
+					<div class="mb-4 flex items-center justify-between">
 						<h3 class="text-lg font-medium text-gray-900 dark:text-white">
 							Relevant Pull Requests
 						</h3>
-						<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200">
+						<span
+							class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-200"
+						>
 							{result.prs.length} found
 						</span>
 					</div>
@@ -84,16 +91,37 @@
 								href={pr.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="group block p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 border border-gray-200 dark:border-gray-600 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md animate-in fade-in-0 slide-in-from-left-2"
+								class="group animate-in fade-in-0 slide-in-from-left-2 block rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-indigo-300 hover:bg-gray-100 hover:shadow-md dark:border-gray-600 dark:bg-gray-700 dark:hover:border-indigo-600 dark:hover:bg-gray-600"
 								style="animation-delay: {index * 100}ms"
 							>
 								<div class="flex items-start justify-between">
-									<div class="flex-1 min-w-0 pr-2">
-										<div class="font-medium text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+									<div class="min-w-0 flex-1 pr-2">
+										<div
+											class="truncate font-medium text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400"
+										>
 											#{pr.number}: {pr.title}
 										</div>
+										{#if pr.releaseVersion}
+											<div class="mt-1 flex items-center">
+												<span
+													class="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200"
+												>
+													📦 &nbsp;Released in {pr.releaseVersion}
+												</span>
+											</div>
+										{:else}
+											<div class="mt-1 flex items-center">
+												<span
+													class="inline-flex items-center rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200"
+												>
+													🚧 Release version unknown
+												</span>
+											</div>
+										{/if}
 									</div>
-									<Clock class="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors flex-shrink-0" />
+									<Clock
+										class="h-4 w-4 flex-shrink-0 text-gray-400 transition-colors group-hover:text-indigo-500"
+									/>
 								</div>
 							</a>
 						{/each}
@@ -101,7 +129,7 @@
 				</div>
 			{:else if result.status !== 'not_fixed'}
 				<!-- Show empty state when no PRs found but analysis suggests it might be fixed -->
-				<div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+				<div class="border-t border-gray-200 pt-6 dark:border-gray-700">
 					<EmptyState
 						icon={GitBranch}
 						title="No Pull Requests Found"

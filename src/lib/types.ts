@@ -19,6 +19,7 @@ export interface PullRequest {
 	number: number;
 	mergedAt?: string;
 	description?: string;
+	releaseVersion?: string;
 }
 
 // GitHub API types (subset of what we'll need)
@@ -48,6 +49,13 @@ export interface GitHubTag {
 	commit: {
 		sha: string;
 	};
+}
+
+export interface GitHubRelease {
+	name: string | null;
+	url: string;
+	body: string | null | undefined;
+	tag: string;
 }
 
 // Cache types

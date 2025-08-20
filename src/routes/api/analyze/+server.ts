@@ -10,7 +10,7 @@ import { analysisRateLimiter } from '$lib/server/services/rate-limiter.js';
 import { getRepoForSdk } from '$lib/utils/sdk-mappings.js';
 import { ProgressTracker, ANALYSIS_STEPS } from '$lib/server/services/progress-tracker.js';
 import type { PullRequest, GitHubPullRequest } from '$lib/types.js';
-
+import * as Sentry from '@sentry/sveltekit';
 // Request schema validation
 const AnalyzeRequestSchema = z.object({
 	requestId: z.string().min(1, 'Request ID is required'),
@@ -216,31 +216,19 @@ async function performAnalysis(
 		console.log({ commitSearchKeywords });
 
 		// Get all tags/versions for the repository
-		let tags = null;
-		console.log({ tags });
-		if (!tags) {
-			tags = await github.getTags(repo);
-			console.log('xx', tags.length, 'Tags', { tags });
-			await cache.set(CACHE_NAMESPACES.GITHUB_TAGS, { repo }, tags, CACHE_TTL.GITHUB_TAGS);
+		let releases = null;
+		if (!releases) {
+			releases = await github.findAllReleases(repo);
+			console.log('xx', releases.length, 'Releases', { releases });
+			await cache.set(
+				CACHE_NAMESPACES.GITHUB_RELEASES,
+				{ repo },
+				releases,
+				CACHE_TTL.GITHUB_RELEASES
+			);
 		}
 
-		// Step 2: Parse and sort versions to find newer versions
-		const sortedVersions = github.parseVersions(tags);
-
-		console.log({ sortedVersions });
-
-		const userVersionIndex = sortedVersions.findIndex(
-			(v) => v.version.includes(version) || version.includes(v.version.replace(/[^0-9.]/g, ''))
-		);
-
-		if (userVersionIndex === -1) {
-			return {
-				status: 'unknown' as const,
-				confidence: 30,
-				summary: `Version ${version} not found in repository tags. Please check the version number.`,
-				prs: []
-			};
-		}
+		console.log('xx releases', releases);
 
 		// Step 2: Search for relevant commits
 		await progressTracker.updateStep(
@@ -255,13 +243,7 @@ async function performAnalysis(
 
 		if (!allCommits) {
 			// Get commits from user's version to the latest (most recent version or HEAD)
-			const latestVersion = sortedVersions.length > 0 ? sortedVersions[0].version : undefined;
-			allCommits = await github.getCommitsBetweenVersions(
-				repo,
-				version,
-				latestVersion || '',
-				commitSearchKeywords
-			);
+			allCommits = await github.getCommitsBetweenVersions(repo, version, commitSearchKeywords);
 			await cache.set(
 				CACHE_NAMESPACES.GITHUB_COMMITS,
 				commitsKey,
@@ -332,7 +314,8 @@ async function performAnalysis(
 					url: pr.html_url,
 					number: pr.number,
 					description: pr.body || undefined,
-					mergedAt: pr.merged_at || undefined
+					mergedAt: pr.merged_at || undefined,
+					releaseVersion: github.findReleaseForPr(pr, releases) ?? 'Unknown'
 				});
 			}
 		}
@@ -346,6 +329,8 @@ async function performAnalysis(
 
 		// PASS 3: AI analysis of fetched PRs
 		const prAnalysis = await ai.analyzePullRequests(description, prs);
+
+		console.log(`Found ${prAnalysis.relevantPrNumbers.length} relevant PRs after analysis`);
 
 		// Final step: Combine both analyses with weighting
 		const analysis = await ai.combineAnalysis(commitAnalysis, prAnalysis, prs);
