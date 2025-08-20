@@ -3,8 +3,14 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { Github } from 'lucide-svelte';
 	import { page } from '$app/stores';
+	import * as Sentry from '@sentry/sveltekit';
+	import { browser } from '$app/environment';
 
-	let { children } = $props();
+	let { children, data } = $props();
+
+	if (browser && data.user) {
+		Sentry.setUser({ username: data.user.name, email: data.user.email, id: data.user.id });
+	}
 </script>
 
 <svelte:head>

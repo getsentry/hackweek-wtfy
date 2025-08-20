@@ -3,6 +3,7 @@ import { redirect } from '@sveltejs/kit';
 import { handleErrorWithSentry, sentryHandle } from '@sentry/sveltekit';
 import { verifySessionToken } from '$lib/server/auth.js';
 import type { Handle } from '@sveltejs/kit';
+import * as Sentry from '@sentry/sveltekit';
 
 // Authentication middleware
 const authHandle: Handle = async ({ event, resolve }) => {
@@ -35,6 +36,8 @@ const authHandle: Handle = async ({ event, resolve }) => {
 	// Add user to locals for use in routes
 	event.locals.user = session.user;
 	event.locals.session = session;
+
+	Sentry.setUser({ username: session.user.name, email: session.user.email, id: session.user.id });
 
 	return resolve(event);
 };
