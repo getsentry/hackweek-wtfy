@@ -44,6 +44,7 @@ su-exec postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE wtfy TO wtfy;" 2>/dev
 # Run database migrations
 echo "🔄 Running database migrations..."
 cd /app
+pnpm run db:generate || echo "⚠️ DB generation failed or already applied"
 pnpm run db:push || echo "⚠️ Migration failed or already applied"
 
 # Start the Node.js application
