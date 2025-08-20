@@ -6,7 +6,8 @@
 		CircleAlert,
 		Zap,
 		Clock,
-		CheckCircle2
+		CheckCircle2,
+		RotateCcw
 	} from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { v4 as uuidv4 } from 'uuid';
@@ -38,6 +39,9 @@
 	let currentView = $state<ViewState>('form');
 	let storedResult = $state<any>(null);
 	let storedQuery = $state<{ sdk: string; version: string; description: string } | null>(null);
+
+	// Component references
+	let requestHistory: any;
 
 	// Collapsible panel state
 	let isWarningExpanded = $state(false);
@@ -493,11 +497,27 @@
 				class="animate-in fade-in-0 slide-in-from-bottom-4 sticky top-8 h-fit rounded-lg bg-white shadow-lg delay-300 duration-500 dark:bg-gray-800"
 			>
 				<div class="border-b border-gray-200 p-4 dark:border-gray-700">
-					<h3 class="text-lg font-medium text-gray-900 dark:text-white">📋 Recent Queries</h3>
-					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 5 • Click to reuse</p>
+					<div class="flex items-center justify-between">
+						<div>
+							<h3 class="text-lg font-medium text-gray-900 dark:text-white">📋 Recent Queries</h3>
+							<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 5 • Click to reuse</p>
+						</div>
+						<Button
+							variant="secondary"
+							size="sm"
+							onclick={() => requestHistory?.refresh()}
+							icon={RotateCcw}
+							title="Refresh history"
+							class="h-8 w-8 p-0"
+						></Button>
+					</div>
 				</div>
 				<div class="p-4">
-					<RequestHistory onPopulateForm={populateFromHistory} onShowResult={showHistoryResult} />
+					<RequestHistory
+						bind:this={requestHistory}
+						onPopulateForm={populateFromHistory}
+						onShowResult={showHistoryResult}
+					/>
 				</div>
 			</div>
 		</div>

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import {
 		History,
-		RotateCcw,
 		Clock,
 		CheckCircle,
 		CircleAlert,
@@ -107,23 +106,14 @@
 	onMount(() => {
 		fetchHistory();
 	});
+
+	// Expose refresh function for parent
+	export function refresh() {
+		fetchHistory();
+	}
 </script>
 
 <div class="space-y-3">
-	<!-- Refresh Button -->
-	<div class="flex justify-end">
-		<Button
-			variant="secondary"
-			size="sm"
-			onclick={fetchHistory}
-			icon={RotateCcw}
-			disabled={isLoading}
-			class="text-xs"
-		>
-			Refresh
-		</Button>
-	</div>
-
 	{#if isLoading}
 		<div class="space-y-2">
 			{#each Array(3) as _}

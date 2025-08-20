@@ -11,7 +11,7 @@
 		class?: string;
 		title?: string;
 		onclick?: () => void;
-		children: any;
+		children?: any;
 	}
 
 	let {
@@ -53,13 +53,15 @@
 >
 	{#if icon && iconPosition === 'left'}
 		{@const IconComponent = icon}
-		<IconComponent class="mr-2 h-4 w-4" />
+		<IconComponent class="{children ? 'mr-2' : ''} h-4 w-4" />
 	{/if}
 
-	{@render children()}
+	{#if children}
+		{@render children()}
+	{/if}
 
 	{#if icon && iconPosition === 'right'}
 		{@const IconComponent = icon}
-		<IconComponent class="ml-2 h-4 w-4" />
+		<IconComponent class="{children ? 'ml-2' : ''} h-4 w-4" />
 	{/if}
 </button>
