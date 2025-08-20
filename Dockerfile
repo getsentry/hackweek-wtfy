@@ -72,9 +72,7 @@ RUN chmod +x /usr/local/bin/start.sh
 RUN mkdir -p /var/lib/postgresql/data
 RUN mkdir -p /run/postgresql
 
-# Create users and groups
-RUN addgroup -g 999 -S postgres
-RUN adduser -S postgres -u 999 -G postgres
+# Create nodejs group and sveltekit user (postgres already exists from package installation)
 RUN addgroup -g 1001 -S nodejs  
 RUN adduser -S sveltekit -u 1001 -G nodejs
 
