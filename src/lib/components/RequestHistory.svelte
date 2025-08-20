@@ -1,5 +1,15 @@
 <script lang="ts">
-	import { History, RotateCcw, Clock, CheckCircle, CircleAlert, CircleX } from 'lucide-svelte';
+	import {
+		History,
+		RotateCcw,
+		Clock,
+		CheckCircle,
+		CircleAlert,
+		CircleX,
+		Eye,
+		Edit3,
+		Repeat
+	} from 'lucide-svelte';
 	import { onMount } from 'svelte';
 	import { Button, ConfidenceMeter } from '$lib';
 
@@ -19,9 +29,10 @@
 
 	interface Props {
 		onPopulateForm: (sdk: string, version: string, description: string) => void;
+		onShowResult: (historyItem: HistoryItem) => void;
 	}
 
-	let { onPopulateForm }: Props = $props();
+	let { onPopulateForm, onShowResult }: Props = $props();
 
 	let history = $state<HistoryItem[]>([]);
 	let isLoading = $state(false);
@@ -36,7 +47,7 @@
 			if (!response.ok) {
 				throw new Error('Failed to fetch history');
 			}
-			
+
 			const data = await response.json();
 			history = data;
 		} catch (err) {
@@ -49,19 +60,27 @@
 
 	function getStatusIcon(status: string | null) {
 		switch (status) {
-			case 'fixed': return CheckCircle;
-			case 'not_fixed': return CircleX;
-			case 'unknown': return CircleAlert;
-			default: return Clock; // No result yet
+			case 'fixed':
+				return CheckCircle;
+			case 'not_fixed':
+				return CircleX;
+			case 'unknown':
+				return CircleAlert;
+			default:
+				return Clock; // No result yet
 		}
 	}
 
 	function getStatusColor(status: string | null) {
 		switch (status) {
-			case 'fixed': return 'text-green-500';
-			case 'not_fixed': return 'text-red-500';
-			case 'unknown': return 'text-yellow-500';
-			default: return 'text-gray-400';
+			case 'fixed':
+				return 'text-green-500';
+			case 'not_fixed':
+				return 'text-red-500';
+			case 'unknown':
+				return 'text-yellow-500';
+			default:
+				return 'text-gray-400';
 		}
 	}
 
@@ -108,65 +127,64 @@
 	{#if isLoading}
 		<div class="space-y-2">
 			{#each Array(3) as _}
-				<div class="animate-pulse p-2 bg-gray-50 dark:bg-gray-700 rounded">
-					<div class="h-3 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-1"></div>
-					<div class="h-2 bg-gray-200 dark:bg-gray-600 rounded w-1/2"></div>
+				<div class="animate-pulse rounded bg-gray-50 p-2 dark:bg-gray-700">
+					<div class="mb-1 h-3 w-3/4 rounded bg-gray-200 dark:bg-gray-600"></div>
+					<div class="h-2 w-1/2 rounded bg-gray-200 dark:bg-gray-600"></div>
 				</div>
 			{/each}
 		</div>
 	{:else if error}
-		<div class="text-center py-3">
+		<div class="py-3 text-center">
 			<p class="text-xs text-red-600 dark:text-red-400">{error}</p>
 		</div>
 	{:else if history.length === 0}
-		<div class="text-center py-6">
-			<History class="h-6 w-6 text-gray-300 mx-auto mb-2" />
+		<div class="py-6 text-center">
+			<History class="mx-auto mb-2 h-6 w-6 text-gray-300" />
 			<p class="text-xs text-gray-500 dark:text-gray-400">No history yet</p>
 		</div>
 	{:else}
 		<div class="space-y-2">
 			{#each history as item}
 				{@const StatusIcon = getStatusIcon(item.result?.status || null)}
-				<button
-					type="button"
-					onclick={() => onPopulateForm(item.sdk, item.version, item.description)}
-					class="w-full text-left p-2 bg-gray-50 dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors group text-xs"
+				<div
+					class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
 				>
-					<div class="flex items-start space-x-2 w-full overflow-hidden">
+					<!-- Main Content -->
+					<div class="mb-3 flex items-start space-x-3">
 						<!-- Status Icon -->
-						<div class="flex-shrink-0 mt-1">
+						<div class="flex-shrink-0">
 							<StatusIcon class="h-4 w-4 {getStatusColor(item.result?.status || null)}" />
 						</div>
 
 						<!-- Content -->
-						<div class="flex-1 min-w-0 overflow-hidden">
-							<div class="flex items-center justify-between mb-1">
-								<span class="text-sm font-medium text-gray-900 dark:text-white truncate">
+						<div class="min-w-0 flex-1">
+							<div class="mb-1 flex items-center justify-between">
+								<span class="truncate text-sm font-medium text-gray-900 dark:text-white">
 									{item.sdk.replace('sentry-', '')}
 								</span>
-								<time class="text-xs text-gray-400 flex-shrink-0">
+								<time class="flex-shrink-0 text-xs text-gray-400">
 									{formatRelativeTime(item.createdAt)}
 								</time>
 							</div>
-							
-							<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+
+							<div class="mb-2 text-xs text-gray-500 dark:text-gray-400">
 								v{item.version}
 							</div>
-							
-							<p class="text-xs text-gray-600 dark:text-gray-300 mb-2 break-words line-clamp-2">
+
+							<p class="mb-2 line-clamp-2 text-xs break-words text-gray-600 dark:text-gray-300">
 								{truncateDescription(item.description)}
 							</p>
 
 							{#if item.result}
-								<div class="flex items-center justify-between">
-									<span class="text-xs font-medium {
-										item.result.status === 'fixed' ? 'text-green-600 dark:text-green-400' :
-										item.result.status === 'not_fixed' ? 'text-red-600 dark:text-red-400' :
-										'text-yellow-600 dark:text-yellow-400'
-									}">
-										{item.result.status === 'fixed' ? '✅' : 
-										 item.result.status === 'not_fixed' ? '❌' : 
-										 '❓'} {item.result.confidence}%
+								<div class="flex items-center space-x-3">
+									<span
+										class="text-xs font-medium {item.result.status === 'fixed'
+											? 'text-green-600 dark:text-green-400'
+											: item.result.status === 'not_fixed'
+												? 'text-red-600 dark:text-red-400'
+												: 'text-yellow-600 dark:text-yellow-400'}"
+									>
+										{item.result.confidence}% confidence
 									</span>
 									{#if item.result.prs && item.result.prs.length > 0}
 										<span class="text-xs text-gray-500 dark:text-gray-400">
@@ -178,13 +196,64 @@
 								<span class="text-xs text-gray-500 dark:text-gray-400">Analyzing...</span>
 							{/if}
 						</div>
-
-						<!-- Populate Icon (appears on hover) -->
-						<div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity mt-1">
-							<RotateCcw class="h-3 w-3 text-gray-400" />
-						</div>
 					</div>
-				</button>
+
+					<!-- Action Buttons -->
+					<div class="flex items-center justify-end space-x-2">
+						{#if item.result}
+							<!-- View Result -->
+							<Button
+								variant="secondary"
+								size="sm"
+								onclick={() => onShowResult(item)}
+								title="View result"
+								class="h-8 w-8 p-0"
+							>
+								<Eye class="h-8 w-8" />
+							</Button>
+
+							<!-- Edit Query -->
+							<Button
+								variant="secondary"
+								size="sm"
+								onclick={() => onPopulateForm(item.sdk, item.version, item.description)}
+								title="Edit query"
+								class="h-8 w-8 p-0"
+							>
+								<Edit3 class="h-3 w-3" />
+							</Button>
+
+							<!-- Re-run Analysis -->
+							<Button
+								variant="secondary"
+								size="sm"
+								onclick={() => {
+									onPopulateForm(item.sdk, item.version, item.description);
+									// Trigger form submission after a brief delay to allow form population
+									setTimeout(() => {
+										const form = document.querySelector('form');
+										if (form) form.requestSubmit();
+									}, 100);
+								}}
+								title="Re-run analysis"
+								class="h-8 w-8 p-0"
+							>
+								<Repeat class="h-3 w-3" />
+							</Button>
+						{:else}
+							<!-- Populate Form (for incomplete analyses) -->
+							<Button
+								variant="secondary"
+								size="sm"
+								onclick={() => onPopulateForm(item.sdk, item.version, item.description)}
+								title="Edit query"
+								class="h-8 w-8 p-0"
+							>
+								<Edit3 class="h-3 w-3" />
+							</Button>
+						{/if}
+					</div>
+				</div>
 			{/each}
 		</div>
 	{/if}

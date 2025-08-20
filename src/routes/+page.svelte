@@ -33,6 +33,12 @@
 	let analysisStep = $state(0);
 	let currentRequestId = $state<string | null>(null);
 
+	// View state management
+	type ViewState = 'form' | 'progress' | 'result';
+	let currentView = $state<ViewState>('form');
+	let storedResult = $state<any>(null);
+	let storedQuery = $state<{ sdk: string; version: string; description: string } | null>(null);
+
 	// Collapsible panel state
 	let isWarningExpanded = $state(false);
 	let isProTipsExpanded = $state(false);
@@ -68,10 +74,20 @@
 
 	// Handle form completion and results
 	$effect(() => {
-		if (form?.success && form.result && !form.result.fromCache) {
+		if (form?.success && form.result) {
 			// Analysis completed, stop any ongoing polling
 			isLoading = false;
 			analysisStep = 5; // Show final step completed
+			currentView = 'result';
+			storedResult = form.result;
+			storedQuery = { sdk, version, description };
+		}
+	});
+
+	// Update view state based on loading
+	$effect(() => {
+		if (isLoading) {
+			currentView = 'progress';
 		}
 	});
 
@@ -130,7 +146,56 @@
 		description = historyDescription;
 		analysisStep = 0;
 		currentRequestId = null;
+		currentView = 'form';
+		storedResult = null;
+		storedQuery = null;
 		// Don't reload - just populate the form
+	}
+
+	function showHistoryResult(historyItem: any) {
+		if (historyItem.result) {
+			storedResult = historyItem.result;
+			storedQuery = {
+				sdk: historyItem.sdk,
+				version: historyItem.version,
+				description: historyItem.description
+			};
+			currentView = 'result';
+		}
+	}
+
+	function startNewQuery() {
+		sdk = '';
+		version = '';
+		description = '';
+		analysisStep = 0;
+		currentRequestId = null;
+		currentView = 'form';
+		storedResult = null;
+		storedQuery = null;
+	}
+
+	function retryStoredQuery() {
+		if (storedQuery) {
+			sdk = storedQuery.sdk;
+			version = storedQuery.version;
+			description = storedQuery.description;
+			currentView = 'form';
+			// Trigger form submission programmatically
+			const form = document.querySelector('form');
+			if (form) {
+				form.requestSubmit();
+			}
+		}
+	}
+
+	function populateStoredQuery() {
+		if (storedQuery) {
+			sdk = storedQuery.sdk;
+			version = storedQuery.version;
+			description = storedQuery.description;
+			currentView = 'form';
+		}
 	}
 
 	function retryAnalysis() {
@@ -243,11 +308,11 @@
 		{/snippet}
 	</CollapsiblePanel>
 
-	<!-- Main Content Layout (hidden during analysis) -->
-	{#if !isLoading}
-		<div class="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-			<!-- Main Form Panel (2/3 width on large screens) -->
-			<div class="lg:col-span-2">
+	<!-- Main Content Layout -->
+	<div class="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+		<!-- Main Panel (2/3 width on large screens) -->
+		<div class="lg:col-span-2">
+			{#if currentView === 'form'}
 				<div
 					class="animate-in fade-in-0 slide-in-from-bottom-4 h-fit rounded-lg bg-white p-6 shadow-lg delay-200 duration-500 dark:bg-gray-800"
 				>
@@ -408,31 +473,35 @@
 						{/snippet}
 					</CollapsiblePanel>
 				</div>
-			</div>
+			{:else if currentView === 'progress'}
+				<div class="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+					<AnalysisProgress currentStep={analysisStep} steps={analysisSteps} />
+				</div>
+			{:else if currentView === 'result' && storedResult}
+				<ResultsCard
+					result={storedResult}
+					onRetry={retryStoredQuery}
+					onEdit={populateStoredQuery}
+					onNewQuery={startNewQuery}
+				/>
+			{/if}
+		</div>
 
-			<!-- Recent Analyses Panel (1/3 width on large screens) -->
-			<div class="lg:col-span-1">
-				<div
-					class="animate-in fade-in-0 slide-in-from-bottom-4 sticky top-8 h-fit rounded-lg bg-white shadow-lg delay-300 duration-500 dark:bg-gray-800"
-				>
-					<div class="border-b border-gray-200 p-4 dark:border-gray-700">
-						<h3 class="text-lg font-medium text-gray-900 dark:text-white">📋 Recent Queries</h3>
-						<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 5 • Click to reuse</p>
-					</div>
-					<div class="p-4">
-						<RequestHistory onPopulateForm={populateFromHistory} />
-					</div>
+		<!-- Recent Analyses Panel (1/3 width on large screens) -->
+		<div class="lg:col-span-1">
+			<div
+				class="animate-in fade-in-0 slide-in-from-bottom-4 sticky top-8 h-fit rounded-lg bg-white shadow-lg delay-300 duration-500 dark:bg-gray-800"
+			>
+				<div class="border-b border-gray-200 p-4 dark:border-gray-700">
+					<h3 class="text-lg font-medium text-gray-900 dark:text-white">📋 Recent Queries</h3>
+					<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 5 • Click to reuse</p>
+				</div>
+				<div class="p-4">
+					<RequestHistory onPopulateForm={populateFromHistory} onShowResult={showHistoryResult} />
 				</div>
 			</div>
 		</div>
-	{/if}
-
-	<!-- Analysis Progress (shown during loading) -->
-	{#if isLoading}
-		<div class="animate-in fade-in-0 slide-in-from-bottom-2 mb-8 duration-300">
-			<AnalysisProgress currentStep={analysisStep} steps={analysisSteps} />
-		</div>
-	{/if}
+	</div>
 
 	<!-- Error Display -->
 	{#if error}
@@ -448,13 +517,6 @@
 					url: 'https://github.com/getsentry/wtfy/issues'
 				}}
 			/>
-		</div>
-	{/if}
-
-	<!-- Results Display -->
-	{#if result}
-		<div class="mb-8">
-			<ResultsCard {result} />
 		</div>
 	{/if}
 </div>

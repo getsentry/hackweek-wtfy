@@ -1,7 +1,16 @@
 <script lang="ts">
-	import { CircleAlert, CircleCheck, Clock, TrendingUp, GitBranch } from 'lucide-svelte';
+	import {
+		CircleAlert,
+		CircleCheck,
+		Clock,
+		TrendingUp,
+		GitBranch,
+		RotateCcw,
+		Edit3,
+		Plus
+	} from 'lucide-svelte';
 	import { parseMarkdownLinks } from '$lib/utils/markdown';
-	import { ConfidenceMeter, EmptyState } from '$lib';
+	import { ConfidenceMeter, EmptyState, Button } from '$lib';
 
 	interface PullRequest {
 		title: string;
@@ -19,9 +28,12 @@
 
 	interface Props {
 		result: Result;
+		onRetry?: () => void;
+		onEdit?: () => void;
+		onNewQuery?: () => void;
 	}
 
-	let { result }: Props = $props();
+	let { result, onRetry, onEdit, onNewQuery }: Props = $props();
 
 	const statusConfig = {
 		fixed: {
@@ -46,13 +58,13 @@
 </script>
 
 <div
-	class="animate-in fade-in-0 slide-in-from-bottom-4 rounded-lg border border-gray-200 bg-white p-6 shadow-lg duration-500 dark:border-gray-700 dark:bg-gray-800"
+	class="animate-in fade-in-0 slide-in-from-bottom-4 w-full max-w-none rounded-lg border border-gray-200 bg-white p-6 shadow-lg duration-500 dark:border-gray-700 dark:bg-gray-800"
 >
 	<div class="flex items-start space-x-4">
 		<div class="flex-shrink-0">
 			<IconComponent class="h-8 w-8 {config.iconColor}" />
 		</div>
-		<div class="flex-1">
+		<div class="min-w-0 flex-1 overflow-hidden">
 			<h2 class="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
 				{config.title}
 			</h2>
@@ -68,9 +80,11 @@
 			</div>
 
 			{#if result.summary}
-				<p class="mb-4 text-gray-600 dark:text-gray-300">
-					{@html parseMarkdownLinks(result.summary)}
-				</p>
+				<div class="mb-4 max-w-none overflow-hidden">
+					<p class="break-words text-gray-600 dark:text-gray-300">
+						{@html parseMarkdownLinks(result.summary)}
+					</p>
+				</div>
 			{/if}
 
 			{#if result.prs && result.prs.length > 0}
@@ -85,13 +99,13 @@
 							{result.prs.length} found
 						</span>
 					</div>
-					<div class="grid gap-3">
+					<div class="max-h-96 space-y-3 overflow-y-auto">
 						{#each result.prs as pr, index}
 							<a
 								href={pr.url}
 								target="_blank"
 								rel="noopener noreferrer"
-								class="group animate-in fade-in-0 slide-in-from-left-2 block rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-indigo-300 hover:bg-gray-100 hover:shadow-md dark:border-gray-600 dark:bg-gray-700 dark:hover:border-indigo-600 dark:hover:bg-gray-600"
+								class="group animate-in fade-in-0 slide-in-from-left-2 block w-full cursor-pointer rounded-lg border border-gray-200 bg-gray-50 p-4 transition-all duration-200 hover:border-indigo-300 hover:bg-gray-100 hover:shadow-md dark:border-gray-600 dark:bg-gray-700 dark:hover:border-indigo-600 dark:hover:bg-gray-600"
 								style="animation-delay: {index * 100}ms"
 							>
 								<div class="flex items-start justify-between">
@@ -138,6 +152,31 @@
 						actionUrl="https://github.com/getsentry/sentry-javascript/issues"
 						class="py-8"
 					/>
+				</div>
+			{/if}
+
+			<!-- Action Buttons -->
+			{#if onRetry || onEdit || onNewQuery}
+				<div class="border-t border-gray-200 pt-6 dark:border-gray-700">
+					<div class="flex flex-col gap-3 sm:flex-row sm:justify-center">
+						{#if onRetry}
+							<Button variant="primary" onclick={onRetry} icon={RotateCcw} class="min-w-0">
+								Re-run Analysis
+							</Button>
+						{/if}
+
+						{#if onEdit}
+							<Button variant="secondary" onclick={onEdit} icon={Edit3} class="min-w-0">
+								Edit Query
+							</Button>
+						{/if}
+
+						{#if onNewQuery}
+							<Button variant="secondary" onclick={onNewQuery} icon={Plus} class="min-w-0">
+								New Query
+							</Button>
+						{/if}
+					</div>
 				</div>
 			{/if}
 		</div>

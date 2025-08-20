@@ -1,0 +1,244 @@
+# WTFY - Cursor Rules
+
+## Core Principles
+
+- **Component Reusability**: Always use existing reusable components (Button, FormField, etc.) instead of creating inline elements
+- **DRY (Don't Repeat Yourself)**: Extract repeating UI patterns into reusable components
+- **Consistency**: Follow established patterns and conventions throughout the codebase
+- **Accessibility**: Ensure all interactive elements are accessible and semantic
+
+## Component Guidelines
+
+### 1. **Always Use Reusable Components**
+
+```svelte
+<!-- ❌ DON'T: Inline button -->
+<button class="rounded bg-blue-600 px-4 py-2 text-white">Submit</button>
+
+<!-- ✅ DO: Use Button component -->
+<Button variant="primary" onclick={handleSubmit}>Submit</Button>
+```
+
+### 2. **Extract Repeating UI Patterns**
+
+If you see the same UI pattern 2+ times, extract it into a reusable component:
+
+```svelte
+<!-- ❌ DON'T: Repeat the same structure -->
+<div class="flex items-center space-x-2">
+	<Icon class="h-4 w-4" />
+	<span>Text</span>
+</div>
+
+<!-- ✅ DO: Create IconLabel component -->
+<IconLabel icon={Icon} text="Text" />
+```
+
+### 3. **Clickable Elements Must Have Cursor Pointer**
+
+```svelte
+<!-- ❌ DON'T: Missing cursor-pointer -->
+<button class="bg-blue-600 px-4 py-2">Click me</button>
+<a href="/link" class="text-blue-600">Link</a>
+
+<!-- ✅ DO: Always include cursor-pointer -->
+<button class="cursor-pointer bg-blue-600 px-4 py-2">Click me</button>
+<a href="/link" class="cursor-pointer text-blue-600">Link</a>
+```
+
+### 4. **DO not use emojis as icons**
+
+Use the icons from lucide-svelte instead. Use the non-deprecated ones.
+
+## Svelte 5 Best Practices
+
+### 1. **Use Runes Syntax**
+
+```svelte
+<!-- ✅ Use $state, $derived, $effect -->
+let count = $state(0);
+let doubled = $derived(count * 2);
+
+$effect(() => {
+  console.log('Count changed:', count);
+});
+```
+
+### 2. **Props Interface Definition**
+
+```svelte
+<script lang="ts">
+	interface Props {
+		title: string;
+		onClick?: () => void;
+		variant?: 'primary' | 'secondary';
+	}
+
+	let { title, onClick, variant = 'primary' }: Props = $props();
+</script>
+```
+
+### 3. **Event Handlers**
+
+```svelte
+<!-- ✅ Use onclick (Svelte 5) -->
+<Button onclick={handleClick}>Click me</Button>
+
+<!-- ❌ Don't use on:click (Svelte 4) -->
+<Button on:click={handleClick}>Click me</Button>
+```
+
+## TypeScript Guidelines
+
+### 1. **Strict Typing**
+
+- Always define interfaces for props, API responses, and complex objects
+- Use proper type guards when needed
+- Avoid `any` type unless absolutely necessary
+
+### 2. **Import Organization**
+
+```typescript
+// 1. External libraries
+import { writable } from 'svelte/store';
+import { z } from 'zod';
+
+// 2. Internal utilities/types
+import type { ApiResponse } from '$lib/types';
+import { formatDate } from '$lib/utils';
+
+// 3. Components (last)
+import { Button, FormField } from '$lib';
+```
+
+## Tailwind CSS Guidelines
+
+### 1. **Class Order** (use Prettier plugin for automatic sorting)
+
+```svelte
+<!-- ✅ Logical order: layout → spacing → colors → effects -->
+<div class="flex items-center space-x-2 px-4 py-2 bg-white text-gray-900 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+```
+
+### 2. **Responsive Design**
+
+```svelte
+<!-- ✅ Mobile-first approach -->
+<div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+```
+
+### 3. **Dark Mode Support**
+
+```svelte
+<!-- ✅ Always include dark mode variants -->
+<div class="bg-white text-gray-900 dark:bg-gray-800 dark:text-white">
+```
+
+## File Organization
+
+### 2. **Naming Conventions**
+
+- **Components**: PascalCase (`Button.svelte`, `FormField.svelte`)
+- **Routes**: kebab-case (`+page.svelte`, `+layout.server.ts`)
+- **Utilities**: camelCase (`formatDate.ts`, `apiClient.ts`)
+
+### 2. **Form Validation**
+
+```typescript
+// ✅ Use Zod for runtime validation
+const schema = z.object({
+	email: z.string().email(),
+	password: z.string().min(8)
+});
+
+const result = schema.safeParse(formData);
+if (!result.success) {
+	// Handle validation errors
+}
+```
+
+## Accessibility Guidelines
+
+### 1. **Semantic HTML**
+
+```svelte
+<!-- ✅ Use proper semantic elements -->
+<nav aria-label="Main navigation">
+	<ul>
+		<li><a href="/">Home</a></li>
+	</ul>
+</nav>
+```
+
+### 2. **ARIA Labels**
+
+```svelte
+<!-- ✅ Provide descriptive labels -->
+<button aria-label="Close dialog" onclick={closeDialog}>
+	<CloseIcon />
+</button>
+```
+
+### 3. **Focus Management**
+
+```svelte
+<!-- ✅ Ensure keyboard navigation works -->
+<div tabindex="0" role="button" onkeydown={handleKeyDown}>Clickable div</div>
+```
+
+## Error Handling
+
+### 1. **Graceful Degradation**
+
+```svelte
+<!-- ✅ Always provide fallbacks -->
+{#if isLoading}
+	<SkeletonLoader />
+{:else if error}
+	<ErrorCard message={error} />
+{:else}
+	<Content {data} />
+{/if}
+```
+
+### 2. **User-Friendly Messages**
+
+```typescript
+// ✅ Provide contextual error messages
+catch (error) {
+  if (error instanceof NetworkError) {
+    setError('Unable to connect. Please check your internet connection.');
+  } else {
+    setError('Something went wrong. Please try again.');
+  }
+}
+```
+
+## Testing Considerations
+
+### 1. **Component Testing**
+
+- Write tests for complex logic
+- Test user interactions
+- Verify accessibility features
+
+### 2. **Type Safety**
+
+- Use TypeScript strict mode
+- Define proper interfaces
+- Avoid type assertions unless necessary
+
+---
+
+## Quick Checklist
+
+Before submitting code, ensure:
+
+- [ ] Used reusable components instead of inline elements
+- [ ] Extracted repeated UI patterns into components
+- [ ] Added `cursor-pointer` to all clickable elements
+- [ ] Followed TypeScript best practices
+- [ ] Included dark mode variants for styling
+- [ ] Added proper ARIA labels for accessibility
+- [ ] Handled loading and error states
+- [ ] Used Svelte 5 runes syntax correctly
