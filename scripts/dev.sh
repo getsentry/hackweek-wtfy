@@ -10,22 +10,13 @@ NC='\033[0m' # No Color
 
 echo -e "${BLUE}🚀 Starting WTFY development environment...${NC}"
 
-# Function to cleanup on exit
-cleanup() {
-    echo -e "\n${YELLOW}🧹 Cleaning up development environment...${NC}"
-    docker-compose -f docker-compose.dev.yml down
-    exit 0
-}
-
-# Set up cleanup trap
-trap cleanup INT TERM
-
 # Check if .env file exists
 if [ ! -f ".env" ]; then
     echo -e "${YELLOW}⚠️  No .env file found. Creating one from .env.example...${NC}"
     if [ -f ".env.example" ]; then
         cp .env.example .env
         echo -e "${GREEN}✅ Created .env file. Please fill in your environment variables.${NC}"
+        echo -e "${YELLOW}📝 Make sure to set DATABASE_URL to your external PostgreSQL database.${NC}"
     else
         echo -e "${RED}❌ No .env.example file found. Please create a .env file with your environment variables.${NC}"
         exit 1
@@ -38,51 +29,37 @@ if [ -f ".env" ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
-# Start PostgreSQL container
-echo -e "${BLUE}🐘 Starting PostgreSQL container...${NC}"
-docker-compose -f docker-compose.dev.yml up -d postgres-dev
+# Validate DATABASE_URL
+if [ -z "$DATABASE_URL" ]; then
+    echo -e "${RED}❌ DATABASE_URL is not set in your .env file${NC}"
+    echo -e "${YELLOW}📝 Please set DATABASE_URL to your PostgreSQL database connection string.${NC}"
+    echo -e "${YELLOW}   Example: DATABASE_URL=\"postgresql://username:password@host:port/database\"${NC}"
+    exit 1
+fi
 
-# Wait for PostgreSQL to be ready
-echo -e "${BLUE}⏳ Waiting for PostgreSQL to be ready...${NC}"
-sleep 5  # Give container time to start
-
-for i in {1..20}; do
-    # Simple check: try to connect to PostgreSQL from inside the container
-    if docker-compose -f docker-compose.dev.yml exec -T postgres-dev pg_isready -h localhost -p 5432 -U wtfy > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ PostgreSQL is ready inside container!${NC}"
-        
-        # Give it a moment more for external port mapping
-        sleep 2
-        echo -e "${BLUE}🔍 Testing external connection...${NC}"
-        
-        # Test external port accessibility with a simple telnet-style check
-        if command -v nc >/dev/null 2>&1 && nc -z localhost 5433 >/dev/null 2>&1; then
-            echo -e "${GREEN}✅ PostgreSQL is accessible from host!${NC}"
-            break
-        else
-            echo "   External connection test failed... ($i/20)"
-        fi
-    else
-        echo "   PostgreSQL not ready... ($i/20)"
-    fi
-    sleep 3
-    
-    if [ $i -eq 20 ]; then
-        echo -e "${RED}❌ PostgreSQL failed to start within 60 seconds${NC}"
-        echo -e "${RED}   Checking container status and logs:${NC}"
-        docker-compose -f docker-compose.dev.yml ps postgres-dev
-        docker-compose -f docker-compose.dev.yml logs postgres-dev
-        cleanup
-        exit 1
-    fi
-done
+# Test database connection
+echo -e "${BLUE}🔍 Testing database connection...${NC}"
+if ! node -e "
+    import pg from 'pg';
+    const { Pool } = pg;
+    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    pool.query('SELECT 1')
+        .then(() => { console.log('✅ Database connection successful'); process.exit(0); })
+        .catch(err => { console.error('❌ Database connection failed:', err.message); process.exit(1); });
+" 2>/dev/null; then
+    echo -e "${RED}❌ Could not connect to database. Please check your DATABASE_URL.${NC}"
+    exit 1
+fi
 
 # Run database migrations
 echo -e "${BLUE}🔄 Running database migrations...${NC}"
-pnpm run db:push
+if ! pnpm run db:push; then
+    echo -e "${RED}❌ Database migration failed! Please check your database connection and schema.${NC}"
+    exit 1
+fi
 
 echo -e "${GREEN}🌟 Starting Vite dev server with HMR...${NC}"
-echo -e "${YELLOW}💡 Press Ctrl+C to stop the development environment${NC}"
+echo -e "${YELLOW}💡 Press Ctrl+C to stop the development server${NC}"
 
 # Start Vite dev server (this will block until stopped)
 pnpm exec vite dev

@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # WTFY Application with embedded PostgreSQL
+  # WTFY Application
   wtfy:
     build: 
       context: .
@@ -17,7 +17,8 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - ORIGIN=http://localhost:3000
+      - ORIGIN=${ORIGIN:-http://localhost:3000}
+      - DATABASE_URL=${DATABASE_URL}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
@@ -27,13 +28,8 @@ services:
       - CACHE_TTL_HOURS=${CACHE_TTL_HOURS:-24}
     restart: unless-stopped
     volumes:
-      # Persist PostgreSQL data
-      - wtfy_data:/var/lib/postgresql/data
       # Optional: mount logs directory
       - ./logs:/app/logs
-
-volumes:
-  wtfy_data:
 
 networks:
   default:
