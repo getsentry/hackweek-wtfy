@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { Github } from 'lucide-svelte';
+	import { Github, HelpCircle } from 'lucide-svelte';
 	import { page } from '$app/stores';
 	import * as Sentry from '@sentry/sveltekit';
 	import { browser } from '$app/environment';
@@ -27,8 +27,20 @@
 	<header class="border-b border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
 		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 			<div class="flex h-16 items-center justify-between">
-				<div class="flex items-center">
-					<h1 class="text-xl font-semibold text-gray-900 dark:text-white">WTFY</h1>
+				<div class="flex items-center space-x-8">
+					<a
+						href="/"
+						class="cursor-pointer text-xl font-semibold text-gray-900 transition-colors hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
+					>
+						WTFY
+					</a>
+					<a
+						href="/how-it-works"
+						class="flex cursor-pointer items-center space-x-1 text-sm text-gray-600 transition-colors hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400"
+					>
+						<HelpCircle class="h-4 w-4" />
+						<span>How It Works</span>
+					</a>
 				</div>
 				<div class="flex items-center space-x-4">
 					<!-- User Info (if available) -->
