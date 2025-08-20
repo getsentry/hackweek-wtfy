@@ -1,10 +1,15 @@
 // See https://svelte.dev/docs/kit/types#app.d.ts
 // for information about these interfaces
 
+import type { GitHubUser, AuthSession } from '$lib/server/auth';
+
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			user?: GitHubUser;
+			session?: AuthSession;
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}
@@ -15,6 +20,9 @@ declare global {
 			DATABASE_URL: string;
 			OPENAI_API_KEY: string;
 			GITHUB_TOKEN: string;
+			GITHUB_CLIENT_ID: string;
+			GITHUB_CLIENT_SECRET: string;
+			JWT_SECRET?: string;
 			CACHE_TTL_HOURS?: string;
 			MAX_REQUESTS_PER_HOUR?: string;
 			SENTRY_DSN?: string;

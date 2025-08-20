@@ -125,8 +125,6 @@ ${issueDescription}`
 
 		const prompt = this.buildCommitAnalysisPrompt(issueDescription, commits);
 
-		// console.log('prompt', prompt);
-
 		try {
 			const response = await this.openai.chat.completions.create({
 				model: 'gpt-4.1',

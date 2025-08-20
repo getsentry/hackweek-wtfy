@@ -14,10 +14,27 @@ DATABASE_URL=postgresql://username:password@your-hosted-db:5432/wtfy
 GITHUB_TOKEN=ghp_your_github_token_here
 OPENAI_API_KEY=sk_your_openai_key_here
 
+# GitHub OAuth (for authentication)
+GITHUB_CLIENT_ID=your_github_oauth_app_client_id
+GITHUB_CLIENT_SECRET=your_github_oauth_app_client_secret
+JWT_SECRET=your_random_jwt_secret_string
+
 # Optional Configuration
 MAX_REQUESTS_PER_HOUR=100
 CACHE_TTL_HOURS=24
 ```
+
+### GitHub OAuth App Setup
+
+Before deploying, you need to create a GitHub OAuth App:
+
+1. **Go to GitHub Settings** → **Developer settings** → **OAuth Apps**
+2. **Click "New OAuth App"**
+3. **Configure the app**:
+   - **Application name**: `WTFY - Sentry Internal Tool`
+   - **Homepage URL**: `https://your-wtfy-domain.com`
+   - **Authorization callback URL**: `https://your-wtfy-domain.com/auth/callback`
+4. **Copy Client ID and Client Secret** to your environment variables
 
 ### 2. **Local Development**
 
@@ -154,6 +171,9 @@ docker run -p 3000:3000 wtfy
    - `DATABASE_URL` = your hosted database connection string
    - `GITHUB_TOKEN` = your GitHub token
    - `OPENAI_API_KEY` = your OpenAI key
+   - `GITHUB_CLIENT_ID` = your GitHub OAuth app client ID
+   - `GITHUB_CLIENT_SECRET` = your GitHub OAuth app client secret
+   - `JWT_SECRET` = random secret for JWT sessions
 2. **Runtime Variables**: Set the same variables as **runtime environment variables**
 3. **Both required**: Build args for `pnpm run build`, env vars for `pnpm start`
 
