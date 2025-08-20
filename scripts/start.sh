@@ -44,8 +44,19 @@ su-exec postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE wtfy TO wtfy;" 2>/dev
 # Run database migrations
 echo "🔄 Running database migrations..."
 cd /app
-pnpm run db:generate || echo "⚠️ DB generation failed or already applied"
-pnpm run db:push || echo "⚠️ Migration failed or already applied"
+
+# Push schema changes to database (this reads schema.ts directly)
+echo "📋 Applying schema changes..."
+if ! pnpm run db:push; then
+    echo "❌ Database migration failed! Check schema file and database connection."
+    echo "📂 Checking if schema file exists..."
+    ls -la src/lib/server/db/schema.ts 2>/dev/null || echo "❌ Schema file not found!"
+    echo "🔗 Testing database connection..."
+    su-exec postgres psql "$DATABASE_URL" -c "SELECT 1;" 2>/dev/null || echo "❌ Database connection failed!"
+    exit 1
+fi
+
+echo "✅ Database migrations completed successfully!"
 
 # Start the Node.js application
 echo "🌟 Starting WTFY application..."

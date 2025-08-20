@@ -64,6 +64,9 @@ COPY --from=base /app/build ./build
 COPY --from=base /app/drizzle ./drizzle
 COPY --from=base /app/drizzle.config.ts ./
 
+# Copy schema file needed for drizzle-kit migrations
+COPY --from=base /app/src/lib/server/db/schema.ts ./src/lib/server/db/schema.ts
+
 # Copy startup script
 COPY scripts/start.sh /usr/local/bin/start.sh
 RUN chmod +x /usr/local/bin/start.sh
