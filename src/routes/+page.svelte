@@ -1,14 +1,5 @@
 <script lang="ts">
-	import {
-		Search,
-		LoaderCircle,
-		TriangleAlert,
-		CircleAlert,
-		Zap,
-		Clock,
-		CheckCircle2,
-		RotateCcw
-	} from 'lucide-svelte';
+	import { Search, TriangleAlert, Zap, Clock, CheckCircle2, RotateCcw } from 'lucide-svelte';
 	import { enhance } from '$app/forms';
 	import { v4 as uuidv4 } from 'uuid';
 	import {
@@ -16,15 +7,22 @@
 		CollapsiblePanel,
 		FormField,
 		ResultsCard,
-		SkeletonLoader,
 		AnalysisProgress,
 		ErrorCard,
 		RequestHistory
 	} from '$lib';
 	import type { ActionData } from './$types';
 	import * as Sentry from '@sentry/sveltekit';
+	import { getReleaseRegistryVersions } from '$lib/utils/releaseRegistry';
 
-	let { form }: { form: ActionData } = $props();
+	let { form, data }: { form: ActionData } = $props();
+
+	const sdks = $derived(
+		data.sdks.map((s) => ({
+			value: s.canonical,
+			label: s.name
+		}))
+	);
 
 	// Form state using Svelte 5 runes
 	let sdk = $state('');
@@ -47,6 +45,27 @@
 	let isWarningExpanded = $state(false);
 	let isProTipsExpanded = $state(false);
 	let isHistoryExpanded = $state(false);
+
+	let versions = $state<string[]>([]);
+
+	let loadingVersions = $state(false);
+
+	$effect(() => {
+		loadingVersions = true;
+		versions = [];
+		version = '';
+		getReleaseRegistryVersions(fetch, sdk)
+			.then((v) => {
+				versions = v;
+				if (v.length > 0) {
+					version = v[v.length - 1];
+				}
+				loadingVersions = false;
+			})
+			.catch(() => {
+				loadingVersions = false;
+			});
+	});
 
 	// Analysis steps for progress indicator
 	const analysisSteps = [
@@ -115,20 +134,6 @@
 				? `${10 - description.length} more character${10 - description.length === 1 ? '' : 's'} needed`
 				: undefined
 	);
-
-	// Common Sentry SDKs
-	const sdks = [
-		{ value: 'sentry-javascript', label: 'JavaScript SDK' },
-		{ value: 'sentry-python', label: 'Python SDK' },
-		{ value: 'sentry-java', label: 'Java SDK' },
-		{ value: 'sentry-dotnet', label: '.NET SDK' },
-		{ value: 'sentry-go', label: 'Go SDK' },
-		{ value: 'sentry-ruby', label: 'Ruby SDK' },
-		{ value: 'sentry-php', label: 'PHP SDK' },
-		{ value: 'sentry-react-native', label: 'React Native SDK' },
-		{ value: 'sentry-cocoa', label: 'iOS/macOS SDK' },
-		{ value: 'sentry-android', label: 'Android SDK' }
-	];
 
 	function resetForm() {
 		sdk = '';
@@ -366,17 +371,32 @@
 						/>
 
 						<!-- Version Input -->
-						<FormField
-							id="version"
-							name="version"
-							label="Your Current Version"
-							type="text"
-							required
-							placeholder="e.g., 7.0.0 or 1.25.1"
-							bind:value={version}
-							error={validationErrors.version}
-							helper="We'll check if your issue was fixed in any version after this one."
-						/>
+						{#if versions?.length}
+							<FormField
+								id="version"
+								name="version"
+								label="Your Current Version"
+								type="select"
+								required
+								placeholder="Choose a version..."
+								bind:value={version}
+								options={versions.map((v) => ({ value: v, label: v }))}
+								error={validationErrors.version}
+								helper="We'll check if your issue was fixed in any version after this one."
+							/>
+						{:else}
+							<FormField
+								id="version"
+								name="version"
+								label="Your Current Version"
+								type="text"
+								required
+								placeholder="7.1.0 or 1.2.3"
+								bind:value={version}
+								error={validationErrors.version}
+								helper="We'll check if your issue was fixed in any version after this one."
+							/>
+						{/if}
 
 						<!-- Issue Description -->
 						<FormField

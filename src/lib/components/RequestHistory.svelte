@@ -222,7 +222,9 @@
 									// Trigger form submission after a brief delay to allow form population
 									setTimeout(() => {
 										const form = document.querySelector('#requestForm');
-										if (form) form.requestSubmit();
+										if (form) {
+											(form as HTMLFormElement).requestSubmit();
+										}
 									}, 100);
 								}}
 								title="Re-run analysis"

@@ -13,13 +13,14 @@
 		helper?: string | null;
 		class?: string;
 		inputClass?: string;
+		disabled?: boolean;
 	}
 
-	let { 
-		id, 
-		name, 
-		label, 
-		type = 'text', 
+	let {
+		id,
+		name,
+		label,
+		type = 'text',
 		required = false,
 		placeholder = '',
 		value = $bindable(''),
@@ -28,27 +29,30 @@
 		error = null,
 		helper = null,
 		class: className = '',
-		inputClass = ''
+		inputClass = '',
+		disabled = false
 	}: Props = $props();
 
-	const baseInputClasses = 'block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
+	const baseInputClasses =
+		'block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500';
 	const errorInputClasses = 'border-orange-300 focus:border-orange-400 focus:ring-orange-200';
 </script>
 
 <div class={className}>
-	<label for={id} class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-		{label} 
+	<label for={id} class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+		{label}
 		{#if required}
 			<span class="text-orange-500">*</span>
 		{/if}
 	</label>
-	
+
 	{#if type === 'select'}
 		<select
 			{id}
 			{name}
 			bind:value
 			{required}
+			{disabled}
 			class="{baseInputClasses} {error ? errorInputClasses : ''} {inputClass}"
 		>
 			<option value="">{placeholder || `Choose ${label.toLowerCase()}...`}</option>
@@ -77,7 +81,7 @@
 			class="{baseInputClasses} {error ? errorInputClasses : ''} {inputClass}"
 		/>
 	{/if}
-	
+
 	{#if error}
 		<p class="mt-1 text-sm text-orange-600 dark:text-orange-400">{error}</p>
 	{:else if helper}

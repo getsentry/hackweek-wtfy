@@ -1,10 +1,10 @@
 import { fail } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import type { Actions, PageServerLoad } from './$types';
+import { getReleaseRegistryHighLevelSdks } from '$lib/utils/releaseRegistry';
 
 export const actions: Actions = {
 	default: async ({ request, fetch }) => {
 		try {
-			console.log('xx form action ');
 			const formData = await request.formData();
 			const data = {
 				requestId: formData.get('requestId') as string,
@@ -12,8 +12,6 @@ export const actions: Actions = {
 				version: formData.get('version') as string,
 				description: formData.get('description') as string
 			};
-
-			console.log('xx form action data', data);
 
 			// Basic validation before calling API
 			if (!data.requestId || !data.sdk || !data.version || !data.description) {
@@ -47,4 +45,10 @@ export const actions: Actions = {
 			});
 		}
 	}
+};
+
+export const load: PageServerLoad = async ({ fetch }) => {
+	return {
+		sdks: await getReleaseRegistryHighLevelSdks(fetch)
+	};
 };

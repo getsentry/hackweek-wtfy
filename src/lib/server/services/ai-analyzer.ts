@@ -385,7 +385,7 @@ ${issueDescription}`
 	 * Build prompt for commit analysis
 	 */
 	private buildCommitAnalysisPrompt(issueDescription: string, commits: GitHubCommit[]): string {
-		console.log('adding commits to prompt', commits.length);
+		console.log(`adding ${commits.length} commits to prompt`);
 		// Include ALL commits - AI will handle the analysis properly
 		const commitSummary = commits
 			.map((commit) => `SHA: ${commit.sha}; Message: ${commit.commit.message.split('\n')[0]};`)
