@@ -2,14 +2,25 @@
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import { Github, HelpCircle } from 'lucide-svelte';
-	import { page } from '$app/stores';
 	import * as Sentry from '@sentry/sveltekit';
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	let { children, data } = $props();
 
-	if (browser && data.user) {
-		Sentry.setUser({ username: data.user.name, email: data.user.email, id: data.user.id });
+	const user = data.user;
+	const nav = $derived($page);
+	const routeId = $derived(nav.route.id);
+
+	$effect(() => {
+		if (routeId !== '/login' && browser && !user) {
+			goto('/login');
+		}
+	});
+
+	if (browser && user) {
+		Sentry.setUser({ username: user.name, email: user.email, id: user.id });
 	}
 </script>
 
@@ -29,18 +40,20 @@
 			<div class="flex h-16 items-center justify-between">
 				<div class="flex items-center space-x-8">
 					<a
-						href="/"
+						href={routeId === '/login' ? routeId : '/'}
 						class="cursor-pointer text-xl font-semibold text-gray-900 transition-colors hover:text-indigo-600 dark:text-white dark:hover:text-indigo-400"
 					>
 						WTFY
 					</a>
-					<a
-						href="/how-it-works"
-						class="flex cursor-pointer items-center space-x-1 text-sm text-gray-600 transition-colors hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400"
-					>
-						<HelpCircle class="h-4 w-4" />
-						<span>How It Works</span>
-					</a>
+					{#if user}
+						<a
+							href="/how-it-works"
+							class="flex cursor-pointer items-center space-x-1 text-sm text-gray-600 transition-colors hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400"
+						>
+							<HelpCircle class="h-4 w-4" />
+							<span>How It Works</span>
+						</a>
+					{/if}
 				</div>
 				<div class="flex items-center space-x-4">
 					<!-- User Info (if available) -->
