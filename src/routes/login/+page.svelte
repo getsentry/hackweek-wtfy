@@ -63,7 +63,7 @@
 			{/if}
 
 			<!-- GitHub Login Button -->
-			<div class="space-y-6">
+			<div class="flex flex-col items-center space-y-6">
 				<a
 					href="/auth/login"
 					class="flex w-full items-center justify-center rounded-md border border-transparent bg-gray-900 px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none dark:bg-gray-700 dark:hover:bg-gray-600"
@@ -71,6 +71,7 @@
 					<Github class="mr-3 h-5 w-5" />
 					Sign in with GitHub
 				</a>
+				<p class="text-green-600">You don't need to request org access during auth!</p>
 			</div>
 
 			<!-- Requirements -->
@@ -79,11 +80,16 @@
 					<div class="mb-3 flex items-center justify-center">
 						<Users class="mr-2 h-5 w-5 text-gray-400" />
 						<span class="text-sm font-medium text-gray-600 dark:text-gray-400">
-							getsentry Organization Required
+							<strong>getsentry</strong> org membership required!
 						</span>
 					</div>
 					<p class="mx-auto max-w-sm text-xs text-gray-500 dark:text-gray-400">
-						You must be a member of the getsentry GitHub organization to access this internal tool.
+						At the moment, you must be a <strong>public member</strong> of the getsentry GitHub organization
+						to access this internal tool.
+					</p>
+					<p class="mx-auto mt-2 max-w-sm text-xs text-gray-500 dark:text-gray-400">
+						Once we get the auth into the getsentry org, we can also authenticate private org
+						members.
 					</p>
 				</div>
 			</div>

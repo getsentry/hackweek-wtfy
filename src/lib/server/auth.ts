@@ -135,7 +135,7 @@ export function getGitHubOAuthUrl(redirectUri: string): string {
 	const params = new URLSearchParams({
 		client_id: clientId,
 		redirect_uri: redirectUri,
-		scope: 'read:user user:email read:org',
+		scope: 'read:user user:email',
 		state: generateRandomState()
 	});
 
