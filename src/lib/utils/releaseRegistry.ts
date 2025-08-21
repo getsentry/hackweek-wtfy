@@ -36,8 +36,6 @@ export async function getReleaseRegistryHighLevelSdks(fetch: typeof globalThis.f
 		ReleaseRegistrySdksEntry
 	>;
 
-	console.log(sdksJson);
-
 	const highLevelSdksMap = new Map<string, SdkData>();
 	for (const [key, value] of Object.entries(sdksJson)) {
 		const parts = key.split('.');
@@ -61,8 +59,6 @@ export async function getReleaseRegistryHighLevelSdks(fetch: typeof globalThis.f
 
 		highLevelSdksMap.set(highLevelSdkKey, sdkData);
 	}
-
-	console.log({ highLevelSdksMap });
 
 	return Array.from(highLevelSdksMap.values());
 }
