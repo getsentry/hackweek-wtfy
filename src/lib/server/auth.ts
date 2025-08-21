@@ -75,21 +75,6 @@ export async function checkOrgMembership(accessToken: string, username: string):
 	try {
 		const octokit = new Octokit({ auth: accessToken });
 
-		const response = await octokit.search.users({
-			q: username,
-			sort: 'followers',
-			order: 'desc',
-			per_page: 1
-		});
-
-		const items = response.data.items;
-
-		const user = items[0];
-		if (!user || user.login !== username) {
-			console.error(`User ${username} not found`);
-			return false;
-		}
-
 		const orgsResponse = await octokit.orgs.listForUser({ username });
 		const orgs = orgsResponse.data.map((org) => org.login);
 
@@ -99,7 +84,7 @@ export async function checkOrgMembership(accessToken: string, username: string):
 			return false;
 		}
 
-		return response.status === 200;
+		return orgsResponse.status === 200;
 	} catch (error) {
 		console.error('Failed to check org membership:', error);
 		return false;
