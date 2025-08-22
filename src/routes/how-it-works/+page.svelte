@@ -5,7 +5,7 @@
 	const analysisSteps = [
 		{
 			icon: Brain,
-			title: 'AI Keyword Extraction',
+			title: 'Extract Keywords',
 			description:
 				'Our AI analyzes your issue description to extract key search terms and technical concepts.',
 			details:
@@ -13,7 +13,7 @@
 		},
 		{
 			icon: Search,
-			title: 'Repository & Release Discovery',
+			title: 'Fetch Releases',
 			description:
 				'We fetch all available releases and tags for the SDK to understand version chronology.',
 			details:
@@ -21,7 +21,7 @@
 		},
 		{
 			icon: GitCommit,
-			title: 'Smart Commit Search',
+			title: 'Search Relevant Commits',
 			description:
 				'We search through commit history from your version onwards using the extracted keywords.',
 			details:
@@ -29,7 +29,7 @@
 		},
 		{
 			icon: Brain,
-			title: 'AI Commit Analysis',
+			title: 'Analyze Commit Messages',
 			description:
 				'AI evaluates each commit message to determine if it potentially addresses your issue.',
 			details:
@@ -37,14 +37,15 @@
 		},
 		{
 			icon: GitPullRequest,
-			title: 'Pull Request Deep Dive',
-			description: 'We fetch detailed PR information for commits that might contain fixes.',
+			title: 'Fetch and Analyze PRs',
+			description:
+				'We fetch detailed PR information for commits that might contain fixes and analyze them.',
 			details:
-				'For relevant commits, we extract PR numbers and fetch the full PR details including descriptions, discussions, and importantly - which release version each fix shipped in.'
+				'For relevant commits, we extract PR numbers, fetch the full PR details including descriptions and discussions, then analyze them with AI to determine which ones actually contain relevant fixes.'
 		},
 		{
 			icon: Zap,
-			title: 'Final Analysis & Confidence',
+			title: 'Combined Analysis',
 			description:
 				'AI combines all findings to determine fix status and provides a confidence score.',
 			details:

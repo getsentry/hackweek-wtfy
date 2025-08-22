@@ -23,7 +23,7 @@ Sentry.init({
 	sendDefaultPii: true,
 
 	// If you don't want to use Session Replay, just remove the line below:
-	integrations: [replayIntegration()]
+	integrations: [replayIntegration(), Sentry.consoleLoggingIntegration()]
 });
 
 // If you have a custom error handler, pass it to `handleErrorWithSentry`

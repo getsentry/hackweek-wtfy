@@ -73,13 +73,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		console.log({ analysisKey });
 
-		const cachedResult = undefined;
+		const cachedResult = await cache.get(CACHE_NAMESPACES.OPENAI_ANALYSIS, analysisKey);
 
 		console.log({ cachedResult });
 
 		if (cachedResult) {
 			const cachedResponse = {
-				...(cachedResult as any),
+				...cachedResult,
 				requestId: null, // No request ID for cached results
 				fromCache: true
 			};
@@ -214,6 +214,21 @@ async function performAnalysis(
 		const commitSearchKeywords = await ai.findKeywords(description);
 		console.log({ commitSearchKeywords });
 
+		// Update with extracted keywords
+		await progressTracker.updateStepWithData(
+			ANALYSIS_STEPS.EXTRACTING_KEYWORDS.step,
+			ANALYSIS_STEPS.EXTRACTING_KEYWORDS.title,
+			'AI extracted search keywords from your issue description',
+			{ keywords: commitSearchKeywords }
+		);
+
+		// Step 2: Fetch releases
+		await progressTracker.updateStep(
+			ANALYSIS_STEPS.FETCHING_RELEASES.step,
+			ANALYSIS_STEPS.FETCHING_RELEASES.title,
+			ANALYSIS_STEPS.FETCHING_RELEASES.description
+		);
+
 		// Get all tags/versions for the repository
 		let releases = null;
 		if (!releases) {
@@ -227,13 +242,23 @@ async function performAnalysis(
 			);
 		}
 
-		console.log('xx releases', releases);
+		console.log(
+			`found ${releases.length} releases: ${releases[0].tag} - ${releases[releases.length ? releases.length - 1 : 0].tag}`
+		);
 
-		// Step 2: Search for relevant commits
+		// Update with release count
+		await progressTracker.updateStepWithData(
+			ANALYSIS_STEPS.FETCHING_RELEASES.step,
+			ANALYSIS_STEPS.FETCHING_RELEASES.title,
+			'Fetched all available releases and version information',
+			{ count: releases.length }
+		);
+
+		// Step 3: Search for relevant commits
 		await progressTracker.updateStep(
-			ANALYSIS_STEPS.FETCHING_COMMITS.step,
-			ANALYSIS_STEPS.FETCHING_COMMITS.title,
-			`Searching for commits containing: ${commitSearchKeywords.join(', ')}`
+			ANALYSIS_STEPS.SEARCHING_COMMITS.step,
+			ANALYSIS_STEPS.SEARCHING_COMMITS.title,
+			ANALYSIS_STEPS.SEARCHING_COMMITS.description
 		);
 
 		// Get ALL commits between user's version and the latest version
@@ -252,17 +277,33 @@ async function performAnalysis(
 		}
 
 		console.log(`Found ${allCommits.length} commits to analyze:`);
+
+		// Update with commit count
+		await progressTracker.updateStepWithData(
+			ANALYSIS_STEPS.SEARCHING_COMMITS.step,
+			ANALYSIS_STEPS.SEARCHING_COMMITS.title,
+			'Searched repository history for relevant changes',
+			{ count: allCommits.length }
+		);
 		// console.log(allCommits);
 
-		// Step 3: AI analysis of commit messages
+		// Step 4: AI analysis of commit messages
 		await progressTracker.updateStep(
 			ANALYSIS_STEPS.ANALYZING_COMMITS.step,
 			ANALYSIS_STEPS.ANALYZING_COMMITS.title,
-			`Analyzing ${allCommits.length} commits with AI`
+			ANALYSIS_STEPS.ANALYZING_COMMITS.description
 		);
 
 		// PASS 1: AI analysis of ALL commit messages to find potentially relevant ones
 		const commitAnalysis = await ai.analyzeCommits(description, allCommits);
+
+		// Update with relevant commit count
+		await progressTracker.updateStepWithData(
+			ANALYSIS_STEPS.ANALYZING_COMMITS.step,
+			ANALYSIS_STEPS.ANALYZING_COMMITS.title,
+			'AI evaluated commit messages for potential fixes',
+			{ count: commitAnalysis.relevantCommitShas.length, total: allCommits.length }
+		);
 
 		if (commitAnalysis.status === 'not_fixed' && !commitAnalysis.relevantCommitShas.length) {
 			// No commits found that potentially fix the issue, so we can bail out early
@@ -287,11 +328,11 @@ async function performAnalysis(
 
 		console.log(`Found ${prNumbers.length} PRs to analyze from relevant commits`);
 
-		// Step 4: Fetch PR details for relevant PRs
+		// Step 5: Fetch PR details for relevant PRs
 		await progressTracker.updateStep(
 			ANALYSIS_STEPS.FETCHING_PRS.step,
 			ANALYSIS_STEPS.FETCHING_PRS.title,
-			`Fetching details for ${prNumbers.length} pull requests`
+			ANALYSIS_STEPS.FETCHING_PRS.description
 		);
 
 		// PASS 2: Fetch PR details for relevant PRs only (smart API usage)
@@ -319,17 +360,25 @@ async function performAnalysis(
 			}
 		}
 
-		// Step 5: Final AI analysis and combination
-		await progressTracker.updateStep(
-			ANALYSIS_STEPS.FINAL_ANALYSIS.step,
-			ANALYSIS_STEPS.FINAL_ANALYSIS.title,
-			`Analyzing ${prs.length} PR descriptions and combining results`
-		);
-
 		// PASS 3: AI analysis of fetched PRs
 		const prAnalysis = await ai.analyzePullRequests(description, prs);
 
 		console.log(`Found ${prAnalysis.relevantPrNumbers.length} relevant PRs after analysis`);
+
+		// Update with relevant PR count
+		await progressTracker.updateStepWithData(
+			ANALYSIS_STEPS.FETCHING_PRS.step,
+			ANALYSIS_STEPS.FETCHING_PRS.title,
+			'Fetched and analyzed pull requests for relevant fixes',
+			{ count: prAnalysis.relevantPrNumbers.length, total: prs.length }
+		);
+
+		// Step 6: Final AI analysis and combination
+		await progressTracker.updateStep(
+			ANALYSIS_STEPS.FINAL_ANALYSIS.step,
+			ANALYSIS_STEPS.FINAL_ANALYSIS.title,
+			ANALYSIS_STEPS.FINAL_ANALYSIS.description
+		);
 
 		// Final step: Combine both analyses with weighting
 		const analysis = await ai.combineAnalysis(commitAnalysis, prAnalysis, prs);

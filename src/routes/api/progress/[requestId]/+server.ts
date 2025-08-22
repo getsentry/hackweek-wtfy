@@ -23,6 +23,7 @@ export const GET: RequestHandler = async ({ params }) => {
 			totalSteps: progressData.totalSteps,
 			stepTitle: progressData.stepTitle,
 			stepDescription: progressData.stepDescription,
+			stepResults: progressData.stepResults || {},
 			isCompleted: progressData.isCompleted === 1,
 			error: progressData.error,
 			updatedAt: progressData.updatedAt

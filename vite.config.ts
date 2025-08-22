@@ -1,3 +1,4 @@
+import devtoolsJson from 'vite-plugin-devtools-json';
 import { sentrySvelteKit } from '@sentry/sveltekit';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -9,13 +10,12 @@ export default defineConfig({
 			sourceMapsUploadOptions: {
 				org: 'sentry-sdks',
 				project: 'wtfy',
-				sourcemaps: {
-					assets: []
-				}
+				sourcemaps: { assets: [] }
 			}
 		}),
 		tailwindcss(),
-		sveltekit()
+		sveltekit(),
+		devtoolsJson()
 	],
 	test: {
 		expect: { requireAssertions: true },

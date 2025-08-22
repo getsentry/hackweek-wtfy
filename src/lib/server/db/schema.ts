@@ -38,9 +38,10 @@ export const progress = pgTable('progress', {
 		.references(() => requests.id)
 		.notNull(),
 	currentStep: integer('current_step').notNull().default(0),
-	totalSteps: integer('total_steps').notNull().default(5),
+	totalSteps: integer('total_steps').notNull().default(6),
 	stepTitle: text('step_title').notNull().default('Starting analysis...'),
 	stepDescription: text('step_description'),
+	stepResults: text('step_results'), // JSON string storing completed step results
 	isCompleted: integer('is_completed').notNull().default(0), // 0 = false, 1 = true (SQLite compatibility)
 	error: text('error'), // Store any error that occurred
 	updatedAt: timestamp('updated_at').defaultNow().notNull()

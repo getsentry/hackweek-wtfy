@@ -11,14 +11,14 @@
 		ErrorCard,
 		RequestHistory
 	} from '$lib';
-	import type { ActionData } from './$types';
+	import type { ActionData, PageData } from './$types';
 	import * as Sentry from '@sentry/sveltekit';
 	import { getReleaseRegistryVersions } from '$lib/utils/releaseRegistry';
 
-	let { form, data }: { form: ActionData } = $props();
+	let { form, data }: { form: ActionData; data: PageData } = $props();
 
 	const sdks = $derived(
-		data.sdks.map((s) => ({
+		data.sdks.map((s: { canonical: string; name: string }) => ({
 			value: s.canonical,
 			label: s.name
 		}))
@@ -67,29 +67,33 @@
 			});
 	});
 
-	// Analysis steps for progress indicator
-	const analysisSteps = [
+	// Analysis steps for progress indicator - these are the default descriptions
+	let analysisSteps = $state([
 		{
-			title: 'Extracting Keywords',
+			title: 'Extract Keywords',
 			description: 'AI analyzing your issue description for search terms'
 		},
 		{
-			title: 'Searching Commits',
+			title: 'Fetch Releases',
+			description: 'Getting all available releases and version information'
+		},
+		{
+			title: 'Search Relevant Commits',
 			description: 'Looking through repository history for relevant changes'
 		},
 		{
-			title: 'Analyzing Commits',
+			title: 'Analyze Commit Messages',
 			description: 'AI evaluating commit messages for potential fixes'
 		},
 		{
-			title: 'Fetching PR Details',
+			title: 'Fetch and Analyze PRs',
 			description: 'Getting detailed information about relevant pull requests'
 		},
 		{
-			title: 'Final Analysis',
+			title: 'Combined Analysis',
 			description: 'Combining all findings to determine if issue was fixed'
 		}
-	];
+	]);
 
 	// Get result and error from form action
 	const result = $derived(form?.success ? form.result : null);
@@ -100,7 +104,7 @@
 		if (form?.success && form.result) {
 			// Analysis completed, stop any ongoing polling
 			isLoading = false;
-			analysisStep = 5; // Show final step completed
+			analysisStep = 6; // Show final step completed
 			currentView = 'result';
 			storedResult = form.result;
 			storedQuery = { sdk, version, description };
@@ -141,8 +145,39 @@
 		description = '';
 		analysisStep = 0;
 		currentRequestId = null;
+		// Reset analysis steps to default descriptions
+		resetAnalysisSteps();
 		// Clear the form result by navigating to the same page to reset form action state
 		window.location.href = window.location.pathname;
+	}
+
+	function resetAnalysisSteps() {
+		analysisSteps = [
+			{
+				title: 'Extract Keywords',
+				description: 'AI analyzing your issue description for search terms'
+			},
+			{
+				title: 'Fetch Releases',
+				description: 'Getting all available releases and version information'
+			},
+			{
+				title: 'Search Relevant Commits',
+				description: 'Looking through repository history for relevant changes'
+			},
+			{
+				title: 'Analyze Commit Messages',
+				description: 'AI evaluating commit messages for potential fixes'
+			},
+			{
+				title: 'Fetch and Analyze PRs',
+				description: 'Getting detailed information about relevant pull requests'
+			},
+			{
+				title: 'Combined Analysis',
+				description: 'Combining all findings to determine if issue was fixed'
+			}
+		];
 	}
 
 	function populateFromHistory(
@@ -182,6 +217,7 @@
 		currentView = 'form';
 		storedResult = null;
 		storedQuery = null;
+		resetAnalysisSteps();
 	}
 
 	function retryStoredQuery() {
@@ -190,6 +226,7 @@
 			version = storedQuery.version;
 			description = storedQuery.description;
 			currentView = 'form';
+			resetAnalysisSteps();
 			// Trigger form submission programmatically
 			const form = document.querySelector('form');
 			if (form) {
@@ -237,11 +274,33 @@
 							console.log(`Progress update:`, progressData);
 							analysisStep = progressData.currentStep;
 
-							// Update step description if available
-							if (progressData.stepDescription) {
-								const stepIndex = progressData.currentStep - 1;
-								if (stepIndex >= 0 && stepIndex < analysisSteps.length) {
-									analysisSteps[stepIndex].description = progressData.stepDescription;
+							// Update completed step descriptions from stored results
+							if (progressData.stepResults) {
+								for (const [stepNum, stepData] of Object.entries(progressData.stepResults)) {
+									const stepIndex = parseInt(stepNum) - 1;
+									if (
+										stepIndex >= 0 &&
+										stepIndex < analysisSteps.length &&
+										stepData &&
+										typeof stepData === 'object'
+									) {
+										const typedStepData = stepData as { title: string; description: string };
+										analysisSteps[stepIndex] = {
+											title: typedStepData.title,
+											description: typedStepData.description
+										};
+									}
+								}
+							}
+
+							// Update current step description if available
+							if (progressData.stepDescription && progressData.currentStep > 0) {
+								const currentStepIndex = progressData.currentStep - 1;
+								if (currentStepIndex >= 0 && currentStepIndex < analysisSteps.length) {
+									analysisSteps[currentStepIndex] = {
+										title: progressData.stepTitle,
+										description: progressData.stepDescription
+									};
 								}
 							}
 
@@ -345,6 +404,8 @@
 							currentRequestId = requestId;
 							isLoading = true;
 							analysisStep = 0;
+							// Reset step descriptions for new analysis
+							resetAnalysisSteps();
 
 							console.log(`Generated request ID: ${requestId}, starting progress polling`);
 							startProgressPolling(requestId);

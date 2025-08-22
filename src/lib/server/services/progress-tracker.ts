@@ -5,8 +5,9 @@ import { eq } from 'drizzle-orm';
 export class ProgressTracker {
 	private requestId: string;
 	private totalSteps: number;
+	private stepResults: Record<number, { title: string; description: string }> = {};
 
-	constructor(requestId: string, totalSteps = 5) {
+	constructor(requestId: string, totalSteps = 6) {
 		this.requestId = requestId;
 		this.totalSteps = totalSteps;
 	}
@@ -44,6 +45,53 @@ export class ProgressTracker {
 		} catch (error) {
 			console.error('Failed to update progress:', error);
 			// Don't throw - progress updates shouldn't break the analysis
+		}
+	}
+
+	/**
+	 * Update step with dynamic data (keywords, counts, etc.) and store result
+	 */
+	async updateStepWithData(
+		step: number,
+		title: string,
+		baseDescription: string,
+		data?: { keywords?: string[]; count?: number; total?: number }
+	): Promise<void> {
+		let description = baseDescription;
+
+		if (data) {
+			if (data.keywords && data.keywords.length > 0) {
+				description += ` (Keywords: ${data.keywords.join(', ')})`;
+			}
+			if (data.count !== undefined) {
+				description += ` (Found: ${data.count})`;
+			}
+			if (data.total !== undefined) {
+				description += ` (Total: ${data.total})`;
+			}
+		}
+
+		// Store this step's result for later retrieval
+		this.stepResults[step] = { title, description };
+
+		await this.updateStep(step, title, description);
+		await this.saveStepResults();
+	}
+
+	/**
+	 * Save step results to database
+	 */
+	private async saveStepResults(): Promise<void> {
+		try {
+			await db
+				.update(progress)
+				.set({
+					stepResults: JSON.stringify(this.stepResults),
+					updatedAt: new Date()
+				})
+				.where(eq(progress.requestId, this.requestId));
+		} catch (error) {
+			console.error('Failed to save step results:', error);
 		}
 	}
 
@@ -103,7 +151,23 @@ export class ProgressTracker {
 				.where(eq(progress.requestId, requestId))
 				.limit(1);
 
-			return result[0] || null;
+			const progressData = result[0];
+			if (!progressData) return null;
+
+			// Parse step results if available
+			let stepResults = {};
+			if (progressData.stepResults) {
+				try {
+					stepResults = JSON.parse(progressData.stepResults);
+				} catch (err) {
+					console.error('Failed to parse step results:', err);
+				}
+			}
+
+			return {
+				...progressData,
+				stepResults
+			};
 		} catch (error) {
 			console.error('Failed to get progress:', error);
 			return null;
@@ -131,27 +195,32 @@ export class ProgressTracker {
 export const ANALYSIS_STEPS = {
 	EXTRACTING_KEYWORDS: {
 		step: 1,
-		title: 'Extracting Keywords',
+		title: 'Extract Keywords',
 		description: 'AI analyzing your issue description for search terms'
 	},
-	FETCHING_COMMITS: {
+	FETCHING_RELEASES: {
 		step: 2,
-		title: 'Searching Commits',
+		title: 'Fetch Releases',
+		description: 'Getting all available releases and version information'
+	},
+	SEARCHING_COMMITS: {
+		step: 3,
+		title: 'Search Relevant Commits',
 		description: 'Looking through repository history for relevant changes'
 	},
 	ANALYZING_COMMITS: {
-		step: 3,
-		title: 'Analyzing Commits',
+		step: 4,
+		title: 'Analyze Commit Messages',
 		description: 'AI evaluating commit messages for potential fixes'
 	},
 	FETCHING_PRS: {
-		step: 4,
-		title: 'Fetching PR Details',
+		step: 5,
+		title: 'Fetch and Analyze PRs',
 		description: 'Getting detailed information about relevant pull requests'
 	},
 	FINAL_ANALYSIS: {
-		step: 5,
-		title: 'Final Analysis',
+		step: 6,
+		title: 'Combined Analysis',
 		description: 'Combining all findings to determine if issue was fixed'
 	}
 } as const;

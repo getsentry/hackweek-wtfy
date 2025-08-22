@@ -12,7 +12,8 @@ Sentry.init({
 		Sentry.openAIIntegration({
 			recordInputs: true,
 			recordOutputs: true
-		})
+		}),
+		Sentry.consoleLoggingIntegration()
 	],
 	sendDefaultPii: true,
 	environment: dev ? 'development' : 'production'
