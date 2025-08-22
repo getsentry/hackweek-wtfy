@@ -16,8 +16,8 @@ Sentry.init({
 		Sentry.consoleLoggingIntegration()
 	],
 	sendDefaultPii: true,
-	environment: dev ? 'development' : 'production'
-	// debug: true
+	environment: dev ? 'development' : 'production',
+	debug: true
 });
 
 process.on('sveltekit:shutdown', () => {

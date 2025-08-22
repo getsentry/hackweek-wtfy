@@ -81,7 +81,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			const cachedResponse = {
 				...cachedResult,
 				requestId: null, // No request ID for cached results
-				fromCache: true
+				fromCache: true,
+				stepResults: {} // Cached results don't have step-by-step data
 			};
 
 			return new Response(JSON.stringify(cachedResponse), {
@@ -150,10 +151,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			CACHE_TTL.OPENAI_ANALYSIS
 		);
 
+		// Get final step results for the response
+		const finalProgressData = await ProgressTracker.getProgress(requestId);
+		const stepResults = finalProgressData?.stepResults || {};
+
 		// Return response with rate limit headers and request ID for progress tracking
 		const responseData = {
 			...analysisResult,
-			requestId: requestId // Include request ID for progress polling
+			requestId: requestId, // Include request ID for progress polling
+			stepResults: stepResults // Include step-by-step analysis data
 		};
 
 		return new Response(JSON.stringify(responseData), {

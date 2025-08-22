@@ -10,7 +10,7 @@
 		Plus
 	} from 'lucide-svelte';
 	import { parseMarkdownLinks } from '$lib/utils/markdown';
-	import { ConfidenceMeter, EmptyState, Button } from '$lib';
+	import { ConfidenceMeter, EmptyState, Button, CollapsiblePanel } from '$lib';
 
 	interface PullRequest {
 		title: string;
@@ -19,11 +19,17 @@
 		releaseVersion?: string;
 	}
 
+	interface StepResult {
+		title: string;
+		description: string;
+	}
+
 	interface Result {
 		status: 'fixed' | 'not_fixed' | 'unknown';
 		confidence: number;
 		summary?: string;
 		prs?: PullRequest[];
+		stepResults?: Record<string, StepResult>;
 	}
 
 	interface Props {
@@ -34,6 +40,9 @@
 	}
 
 	let { result, onRetry, onEdit, onNewQuery }: Props = $props();
+
+	// State for expandable analysis details
+	let isAnalysisDetailsExpanded = $state(false);
 
 	const statusConfig = {
 		fixed: {
@@ -84,6 +93,46 @@
 					<p class="break-words text-gray-600 dark:text-gray-300">
 						{@html parseMarkdownLinks(result.summary)}
 					</p>
+				</div>
+			{/if}
+
+			<!-- Analysis Details Section -->
+			{#if result.stepResults && Object.keys(result.stepResults).length > 0}
+				<div class="mb-6">
+					<CollapsiblePanel
+						title="🔍 Analysis Details"
+						variant="info"
+						bind:isExpanded={isAnalysisDetailsExpanded}
+					>
+						{#snippet children()}
+							<div class="space-y-4">
+								{#each Object.entries(result.stepResults || {}).sort(([a], [b]) => parseInt(a) - parseInt(b)) as [stepNum, stepData]}
+									<div class="flex items-start space-x-3">
+										<div class="flex-shrink-0">
+											<div
+												class="flex h-6 w-6 items-center justify-center rounded-full bg-green-100 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300"
+											>
+												{stepNum}
+											</div>
+										</div>
+										<div class="min-w-0 flex-1">
+											<h4 class="text-sm font-medium text-gray-900 dark:text-white">
+												{stepData.title}
+											</h4>
+											<p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+												{stepData.description}
+											</p>
+										</div>
+									</div>
+								{/each}
+							</div>
+							<div class="mt-4 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+								<p class="text-sm text-blue-800 dark:text-blue-300">
+									💡 This shows the step-by-step data our AI gathered to reach its conclusion.
+								</p>
+							</div>
+						{/snippet}
+					</CollapsiblePanel>
 				</div>
 			{/if}
 
