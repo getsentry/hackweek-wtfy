@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { Github, HelpCircle } from 'lucide-svelte';
+	import { Github, HelpCircle, Database } from 'lucide-svelte';
 	import * as Sentry from '@sentry/sveltekit';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
@@ -46,6 +46,13 @@
 						WTFY
 					</a>
 					{#if user}
+						<a
+							href="/queries"
+							class="flex cursor-pointer items-center space-x-1 text-sm text-gray-600 transition-colors hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400"
+						>
+							<Database class="h-4 w-4" />
+							<span>All Queries</span>
+						</a>
 						<a
 							href="/how-it-works"
 							class="flex cursor-pointer items-center space-x-1 text-sm text-gray-600 transition-colors hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400"

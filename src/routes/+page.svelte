@@ -521,7 +521,15 @@
 					<div class="flex items-center justify-between">
 						<div>
 							<h3 class="text-lg font-medium text-gray-900 dark:text-white">📋 Recent Queries</h3>
-							<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 5 • Click to reuse</p>
+							<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+								Last 5 • Click to reuse •
+								<a
+									href="/queries"
+									class="cursor-pointer text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300"
+								>
+									View all
+								</a>
+							</p>
 						</div>
 						<Button
 							variant="secondary"

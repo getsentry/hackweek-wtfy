@@ -6,6 +6,7 @@ export { default as CollapsiblePanel } from './components/CollapsiblePanel.svelt
 export { default as FormField } from './components/FormField.svelte';
 export { default as ResultsCard } from './components/ResultsCard.svelte';
 export { default as SkeletonLoader } from './components/SkeletonLoader.svelte';
+export { default as QueryListItem } from './components/QueryListItem.svelte';
 export { default as AnalysisProgress } from './components/AnalysisProgress.svelte';
 export { default as ErrorCard } from './components/ErrorCard.svelte';
 export { default as ConfidenceMeter } from './components/ConfidenceMeter.svelte';

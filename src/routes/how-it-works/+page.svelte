@@ -1,13 +1,5 @@
 <script lang="ts">
-	import {
-		CircleCheck,
-		Search,
-		Brain,
-		GitCommit,
-		GitPullRequest,
-		Zap,
-		ArrowLeft
-	} from 'lucide-svelte';
+	import { CircleCheck, Search, Brain, GitCommit, GitPullRequest, Zap } from 'lucide-svelte';
 	import { Button } from '$lib';
 
 	const analysisSteps = [
@@ -71,26 +63,12 @@
 
 <div class="mx-auto w-full max-w-4xl px-4 py-8">
 	<!-- Header -->
-	<div class="mb-8">
-		<div class="mb-4 flex items-center">
-			<Button
-				variant="secondary"
-				size="sm"
-				onclick={() => window.history.back()}
-				icon={ArrowLeft}
-				class="mr-4"
-			>
-				Back
-			</Button>
-		</div>
-
-		<div class="text-center">
-			<h1 class="mb-4 text-3xl font-bold text-gray-900 dark:text-white">How WTFY Works</h1>
-			<p class="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300">
-				WTFY uses advanced AI and GitHub API integration to analyze whether your SDK issues have
-				been fixed. Here's exactly how we do it:
-			</p>
-		</div>
+	<div class="mb-8 text-center">
+		<h1 class="mb-4 text-3xl font-bold text-gray-900 dark:text-white">How WTFY Works</h1>
+		<p class="mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300">
+			WTFY uses advanced AI and GitHub API integration to analyze whether your SDK issues have been
+			fixed. Here's exactly how we do it:
+		</p>
 	</div>
 
 	<!-- Analysis Process -->
