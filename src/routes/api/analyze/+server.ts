@@ -9,7 +9,7 @@ import { CacheService, CACHE_NAMESPACES, CACHE_TTL } from '$lib/server/services/
 import { analysisRateLimiter } from '$lib/server/services/rate-limiter.js';
 import { getRepoForSdk } from '$lib/utils/sdk-mappings.js';
 import { ProgressTracker, ANALYSIS_STEPS } from '$lib/server/services/progress-tracker.js';
-import type { PullRequest, GitHubPullRequest } from '$lib/types.js';
+import type { PullRequest, GitHubPullRequest, GitHubRelease, GitHubCommit } from '$lib/types.js';
 // Request schema validation
 const AnalyzeRequestSchema = z.object({
 	requestId: z.string().min(1, 'Request ID is required'),
@@ -230,13 +230,15 @@ async function performAnalysis(
 		);
 
 		// Get all tags/versions for the repository
-		let releases = null;
+		const releasesKey = { repo };
+		let releases = await cache.get<GitHubRelease[]>(CACHE_NAMESPACES.GITHUB_RELEASES, releasesKey);
+
 		if (!releases) {
 			releases = await github.findAllReleases(repo);
 			console.log('xx', releases.length, 'Releases', { releases });
 			await cache.set(
 				CACHE_NAMESPACES.GITHUB_RELEASES,
-				{ repo },
+				releasesKey,
 				releases,
 				CACHE_TTL.GITHUB_RELEASES
 			);
@@ -246,7 +248,7 @@ async function performAnalysis(
 			`found ${releases.length} releases: ${releases[0].tag} - ${releases[releases.length ? releases.length - 1 : 0].tag}`
 		);
 
-		// Update with release count
+		// Update with release count - always show count whether cached or fresh
 		await progressTracker.updateStepWithData(
 			ANALYSIS_STEPS.FETCHING_RELEASES.step,
 			ANALYSIS_STEPS.FETCHING_RELEASES.title,
@@ -263,7 +265,7 @@ async function performAnalysis(
 
 		// Get ALL commits between user's version and the latest version
 		const commitsKey = { repo, from: version };
-		let allCommits = undefined;
+		let allCommits = await cache.get<GitHubCommit[]>(CACHE_NAMESPACES.GITHUB_COMMITS, commitsKey);
 
 		if (!allCommits) {
 			// Get commits from user's version to the latest (most recent version or HEAD)
@@ -278,7 +280,7 @@ async function performAnalysis(
 
 		console.log(`Found ${allCommits.length} commits to analyze:`);
 
-		// Update with commit count
+		// Update with commit count - always show count whether cached or fresh
 		await progressTracker.updateStepWithData(
 			ANALYSIS_STEPS.SEARCHING_COMMITS.step,
 			ANALYSIS_STEPS.SEARCHING_COMMITS.title,
@@ -297,7 +299,7 @@ async function performAnalysis(
 		// PASS 1: AI analysis of ALL commit messages to find potentially relevant ones
 		const commitAnalysis = await ai.analyzeCommits(description, allCommits);
 
-		// Update with relevant commit count
+		// Update immediately after AI analysis completes
 		await progressTracker.updateStepWithData(
 			ANALYSIS_STEPS.ANALYZING_COMMITS.step,
 			ANALYSIS_STEPS.ANALYZING_COMMITS.title,
@@ -318,7 +320,7 @@ async function performAnalysis(
 		console.log({ commitAnalysis });
 
 		// Step 3: Extract PR numbers only from relevant commits (identified by AI)
-		const relevantCommits = allCommits.filter((commit) =>
+		const relevantCommits = allCommits.filter((commit: GitHubCommit) =>
 			commitAnalysis.relevantCommitShas.includes(commit.sha)
 		);
 
@@ -360,16 +362,24 @@ async function performAnalysis(
 			}
 		}
 
+		// Update immediately after fetching PRs
+		await progressTracker.updateStepWithData(
+			ANALYSIS_STEPS.FETCHING_PRS.step,
+			ANALYSIS_STEPS.FETCHING_PRS.title,
+			'Fetched pull request details, now analyzing with AI',
+			{ count: prs.length, total: prNumbers.length }
+		);
+
 		// PASS 3: AI analysis of fetched PRs
 		const prAnalysis = await ai.analyzePullRequests(description, prs);
 
 		console.log(`Found ${prAnalysis.relevantPrNumbers.length} relevant PRs after analysis`);
 
-		// Update with relevant PR count
+		// Update again with final relevant PR count
 		await progressTracker.updateStepWithData(
 			ANALYSIS_STEPS.FETCHING_PRS.step,
 			ANALYSIS_STEPS.FETCHING_PRS.title,
-			'Fetched and analyzed pull requests for relevant fixes',
+			'Analyzed pull requests and identified relevant fixes',
 			{ count: prAnalysis.relevantPrNumbers.length, total: prs.length }
 		);
 

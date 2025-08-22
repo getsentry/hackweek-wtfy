@@ -255,8 +255,6 @@
 	async function startProgressPolling(requestId: string) {
 		if (!requestId) return;
 
-		console.log(`Starting progress polling for request ${requestId}`);
-
 		const pollInterval = setInterval(async () => {
 			await Sentry.startSpan(
 				{
@@ -271,7 +269,6 @@
 						const response = await fetch(`/api/progress/${requestId}`);
 						if (response.ok) {
 							const progressData = await response.json();
-							console.log(`Progress update:`, progressData);
 							analysisStep = progressData.currentStep;
 
 							// Update completed step descriptions from stored results
@@ -307,7 +304,6 @@
 							// Stop polling when completed or error
 							if (progressData.isCompleted || progressData.error) {
 								clearInterval(pollInterval);
-								console.log(`Progress polling completed for request ${requestId}`);
 							}
 						}
 					} catch (err) {
@@ -321,7 +317,6 @@
 		// Cleanup after 60 seconds to prevent runaway polling
 		setTimeout(() => {
 			clearInterval(pollInterval);
-			console.log(`Progress polling timeout for request ${requestId}`);
 		}, 60000);
 	}
 </script>
@@ -407,7 +402,6 @@
 							// Reset step descriptions for new analysis
 							resetAnalysisSteps();
 
-							console.log(`Generated request ID: ${requestId}, starting progress polling`);
 							startProgressPolling(requestId);
 
 							return async ({ update }) => {
