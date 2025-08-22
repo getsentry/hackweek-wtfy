@@ -44,7 +44,8 @@
 	// Collapsible panel state
 	let isWarningExpanded = $state(false);
 	let isProTipsExpanded = $state(false);
-	let isHistoryExpanded = $state(false);
+
+	let setLatestSdkVersion = $state(true);
 
 	let versions = $state<string[]>([]);
 
@@ -53,12 +54,16 @@
 	$effect(() => {
 		loadingVersions = true;
 		versions = [];
-		version = '';
+		if (setLatestSdkVersion) {
+			version = '';
+		}
 		getReleaseRegistryVersions(fetch, sdk)
 			.then((v) => {
 				versions = v;
-				if (v.length > 0) {
+				if (setLatestSdkVersion && v.length > 0) {
 					version = v[v.length - 1];
+				} else if (!setLatestSdkVersion && version) {
+					version = version;
 				}
 				loadingVersions = false;
 			})
@@ -185,6 +190,7 @@
 		historyVersion: string,
 		historyDescription: string
 	) {
+		setLatestSdkVersion = false;
 		sdk = historySdk;
 		version = historyVersion;
 		description = historyDescription;
@@ -193,7 +199,6 @@
 		currentView = 'form';
 		storedResult = null;
 		storedQuery = null;
-		// Don't reload - just populate the form
 	}
 
 	function showHistoryResult(historyItem: any) {
