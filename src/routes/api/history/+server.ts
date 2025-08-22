@@ -17,7 +17,8 @@ export const GET: RequestHandler = async () => {
 				status: results.status,
 				confidence: results.confidence,
 				summary: results.summary,
-				prs: results.prs
+				prs: results.prs,
+				stepResults: results.stepResults
 			})
 			.from(requests)
 			.leftJoin(results, eq(requests.id, results.requestId))
@@ -25,21 +26,34 @@ export const GET: RequestHandler = async () => {
 			.limit(5);
 
 		// Transform to a cleaner format
-		const historyItems = recentRequests.map((item) => ({
-			id: item.id,
-			sdk: item.sdk,
-			version: item.version,
-			description: item.description,
-			createdAt: item.createdAt,
-			result: item.status
-				? {
-						status: item.status,
-						confidence: item.confidence,
-						summary: item.summary,
-						prs: item.prs
-					}
-				: null
-		}));
+		const historyItems = recentRequests.map((item) => {
+			// Parse step results if available
+			let stepResults = {};
+			if (item.stepResults) {
+				try {
+					stepResults = JSON.parse(item.stepResults);
+				} catch (err) {
+					console.error('Failed to parse step results for history item:', err);
+				}
+			}
+
+			return {
+				id: item.id,
+				sdk: item.sdk,
+				version: item.version,
+				description: item.description,
+				createdAt: item.createdAt,
+				result: item.status
+					? {
+							status: item.status,
+							confidence: item.confidence,
+							summary: item.summary,
+							prs: item.prs,
+							stepResults: stepResults
+						}
+					: null
+			};
+		});
 
 		return json(historyItems);
 	} catch (error) {

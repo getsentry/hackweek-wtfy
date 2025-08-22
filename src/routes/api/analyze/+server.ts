@@ -134,13 +134,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			throw analysisError;
 		}
 
+		// Get step results to store with final result
+		const finalProgressData = await ProgressTracker.getProgress(requestId);
+		const stepResults = finalProgressData?.stepResults || {};
+
 		// Store result in database
 		await db.insert(results).values({
 			requestId,
 			status: analysisResult.status,
 			confidence: analysisResult.confidence,
 			summary: analysisResult.summary,
-			prs: analysisResult.prs
+			prs: analysisResult.prs,
+			stepResults: JSON.stringify(stepResults)
 		});
 
 		// Cache the complete result
@@ -150,10 +155,6 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			analysisResult,
 			CACHE_TTL.OPENAI_ANALYSIS
 		);
-
-		// Get final step results for the response
-		const finalProgressData = await ProgressTracker.getProgress(requestId);
-		const stepResults = finalProgressData?.stepResults || {};
 
 		// Return response with rate limit headers and request ID for progress tracking
 		const responseData = {

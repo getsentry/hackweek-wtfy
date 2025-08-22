@@ -20,6 +20,7 @@ export const results = pgTable('results', {
 	confidence: integer('confidence').notNull(), // 0-100 confidence score
 	summary: text('summary'), // Brief summary of the fix
 	prs: jsonb('prs'), // Array of PR objects with details
+	stepResults: text('step_results'), // JSON string storing step-by-step analysis data
 	createdAt: timestamp('created_at').defaultNow().notNull()
 });
 
